@@ -1,0 +1,392 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D28EE5D51CB717F700E1B299 /* JurgolAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */; };
+		D28EE5D71CB717F700E1B299 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5D61CB717F700E1B299 /* ContentView.swift */; };
+		D28EE5D91CB7180500E1B299 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28EE5D81CB7180500E1B299 /* Assets.xcassets */; };
+		D28EE5DC1CB7180500E1B299 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28EE5DB1CB7180500E1B299 /* Preview Assets.xcassets */; };
+		D28EE5DE1CB7180500E1B299 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5DD1CB7180500E1B299 /* Persistence.swift */; };
+		D28EE5E11CB7180500E1B299 /* JurgolApp.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */; };
+		D2A7F46027EF6EC3005C32E2 /* ContentViewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */; };
+		D2A7F46327EF6FCC005C32E2 /* Player+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A7F46127EF6FCC005C32E2 /* Player+CoreDataClass.swift */; };
+		D2A7F46427EF6FCC005C32E2 /* Player+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A7F46227EF6FCC005C32E2 /* Player+CoreDataProperties.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		D28EE5D11CB717F700E1B299 /* JurgolApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JurgolApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JurgolAppApp.swift; sourceTree = "<group>"; };
+		D28EE5D61CB717F700E1B299 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D28EE5D81CB7180500E1B299 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D28EE5DB1CB7180500E1B299 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		D28EE5DD1CB7180500E1B299 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		D28EE5E01CB7180500E1B299 /* JurgolApp.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = JurgolApp.xcdatamodel; sourceTree = "<group>"; };
+		D28EE5E21CB7180500E1B299 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D2A7F45A27EF6568005C32E2 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewViewModel.swift; sourceTree = "<group>"; };
+		D2A7F46127EF6FCC005C32E2 /* Player+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player+CoreDataClass.swift"; sourceTree = "<group>"; };
+		D2A7F46227EF6FCC005C32E2 /* Player+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player+CoreDataProperties.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D28EE5CE1CB717F700E1B299 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D28EE5C81CB717F700E1B299 = {
+			isa = PBXGroup;
+			children = (
+				D28EE5D31CB717F700E1B299 /* JurgolApp */,
+				D28EE5D21CB717F700E1B299 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D28EE5D21CB717F700E1B299 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D28EE5D11CB717F700E1B299 /* JurgolApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D28EE5D31CB717F700E1B299 /* JurgolApp */ = {
+			isa = PBXGroup;
+			children = (
+				D2A7F45927EF653D005C32E2 /* ViewModel */,
+				D2A7F45827EF6539005C32E2 /* View */,
+				D2A7F45727EF6531005C32E2 /* CoreDataRelated */,
+				D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */,
+				D28EE5D81CB7180500E1B299 /* Assets.xcassets */,
+				D28EE5DD1CB7180500E1B299 /* Persistence.swift */,
+				D28EE5E21CB7180500E1B299 /* Info.plist */,
+				D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */,
+				D2A7F45A27EF6568005C32E2 /* README.md */,
+				D28EE5DA1CB7180500E1B299 /* Preview Content */,
+			);
+			path = JurgolApp;
+			sourceTree = "<group>";
+		};
+		D28EE5DA1CB7180500E1B299 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				D28EE5DB1CB7180500E1B299 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		D2A7F45727EF6531005C32E2 /* CoreDataRelated */ = {
+			isa = PBXGroup;
+			children = (
+				D2A7F46127EF6FCC005C32E2 /* Player+CoreDataClass.swift */,
+				D2A7F46227EF6FCC005C32E2 /* Player+CoreDataProperties.swift */,
+			);
+			path = CoreDataRelated;
+			sourceTree = "<group>";
+		};
+		D2A7F45827EF6539005C32E2 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				D28EE5D61CB717F700E1B299 /* ContentView.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		D2A7F45927EF653D005C32E2 /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D28EE5D01CB717F700E1B299 /* JurgolApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D28EE5E51CB7180500E1B299 /* Build configuration list for PBXNativeTarget "JurgolApp" */;
+			buildPhases = (
+				D28EE5CD1CB717F700E1B299 /* Sources */,
+				D28EE5CE1CB717F700E1B299 /* Frameworks */,
+				D28EE5CF1CB717F700E1B299 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JurgolApp;
+			productName = JurgolApp;
+			productReference = D28EE5D11CB717F700E1B299 /* JurgolApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D28EE5C91CB717F700E1B299 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1250;
+				LastUpgradeCheck = 1250;
+				TargetAttributes = {
+					D28EE5D01CB717F700E1B299 = {
+						CreatedOnToolsVersion = 12.5;
+					};
+				};
+			};
+			buildConfigurationList = D28EE5CC1CB717F700E1B299 /* Build configuration list for PBXProject "JurgolApp" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D28EE5C81CB717F700E1B299;
+			productRefGroup = D28EE5D21CB717F700E1B299 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D28EE5D01CB717F700E1B299 /* JurgolApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D28EE5CF1CB717F700E1B299 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D28EE5DC1CB7180500E1B299 /* Preview Assets.xcassets in Resources */,
+				D28EE5D91CB7180500E1B299 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D28EE5CD1CB717F700E1B299 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D2A7F46327EF6FCC005C32E2 /* Player+CoreDataClass.swift in Sources */,
+				D28EE5DE1CB7180500E1B299 /* Persistence.swift in Sources */,
+				D2A7F46027EF6EC3005C32E2 /* ContentViewViewModel.swift in Sources */,
+				D2A7F46427EF6FCC005C32E2 /* Player+CoreDataProperties.swift in Sources */,
+				D28EE5D71CB717F700E1B299 /* ContentView.swift in Sources */,
+				D28EE5E11CB7180500E1B299 /* JurgolApp.xcdatamodeld in Sources */,
+				D28EE5D51CB717F700E1B299 /* JurgolAppApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D28EE5E31CB7180500E1B299 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D28EE5E41CB7180500E1B299 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D28EE5E61CB7180500E1B299 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"JurgolApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 8JKTW47THY;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = JurgolApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = lopeh.JurgolApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		D28EE5E71CB7180500E1B299 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"JurgolApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 8JKTW47THY;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = JurgolApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = lopeh.JurgolApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D28EE5CC1CB717F700E1B299 /* Build configuration list for PBXProject "JurgolApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D28EE5E31CB7180500E1B299 /* Debug */,
+				D28EE5E41CB7180500E1B299 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D28EE5E51CB7180500E1B299 /* Build configuration list for PBXNativeTarget "JurgolApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D28EE5E61CB7180500E1B299 /* Debug */,
+				D28EE5E71CB7180500E1B299 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				D28EE5E01CB7180500E1B299 /* JurgolApp.xcdatamodel */,
+			);
+			currentVersion = D28EE5E01CB7180500E1B299 /* JurgolApp.xcdatamodel */;
+			path = JurgolApp.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = D28EE5C91CB717F700E1B299 /* Project object */;
+}
