@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D270B66E27F0065F00FEAA3C /* CardBottom.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B66D27F0065F00FEAA3C /* CardBottom.swift */; };
+		D270B67027F0106800FEAA3C /* CardTop.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B66F27F0106800FEAA3C /* CardTop.swift */; };
+		D270B67227F0228000FEAA3C /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B67127F0228000FEAA3C /* Card.swift */; };
+		D270B67827F0326C00FEAA3C /* CardColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B67727F0326C00FEAA3C /* CardColors.swift */; };
 		D28EE5D51CB717F700E1B299 /* JurgolAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */; };
 		D28EE5D71CB717F700E1B299 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5D61CB717F700E1B299 /* ContentView.swift */; };
 		D28EE5D91CB7180500E1B299 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28EE5D81CB7180500E1B299 /* Assets.xcassets */; };
@@ -19,6 +23,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		D270B66D27F0065F00FEAA3C /* CardBottom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardBottom.swift; sourceTree = "<group>"; };
+		D270B66F27F0106800FEAA3C /* CardTop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTop.swift; sourceTree = "<group>"; };
+		D270B67127F0228000FEAA3C /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
+		D270B67727F0326C00FEAA3C /* CardColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardColors.swift; sourceTree = "<group>"; };
 		D28EE5D11CB717F700E1B299 /* JurgolApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JurgolApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JurgolAppApp.swift; sourceTree = "<group>"; };
 		D28EE5D61CB717F700E1B299 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -44,6 +52,32 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D270B66C27F005FC00FEAA3C /* Shapes */ = {
+			isa = PBXGroup;
+			children = (
+				D270B66D27F0065F00FEAA3C /* CardBottom.swift */,
+				D270B66F27F0106800FEAA3C /* CardTop.swift */,
+				D270B67127F0228000FEAA3C /* Card.swift */,
+			);
+			path = Shapes;
+			sourceTree = "<group>";
+		};
+		D270B67327F02D9A00FEAA3C /* Util */ = {
+			isa = PBXGroup;
+			children = (
+				D270B67627F0325A00FEAA3C /* Protocols */,
+			);
+			path = Util;
+			sourceTree = "<group>";
+		};
+		D270B67627F0325A00FEAA3C /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				D270B67727F0326C00FEAA3C /* CardColors.swift */,
+			);
+			path = Protocols;
+			sourceTree = "<group>";
+		};
 		D28EE5C81CB717F700E1B299 = {
 			isa = PBXGroup;
 			children = (
@@ -66,9 +100,11 @@
 				D2A7F45927EF653D005C32E2 /* ViewModel */,
 				D2A7F45827EF6539005C32E2 /* View */,
 				D2A7F45727EF6531005C32E2 /* CoreDataRelated */,
-				D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */,
 				D28EE5D81CB7180500E1B299 /* Assets.xcassets */,
+				D270B67327F02D9A00FEAA3C /* Util */,
+				D270B66C27F005FC00FEAA3C /* Shapes */,
 				D28EE5DD1CB7180500E1B299 /* Persistence.swift */,
+				D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */,
 				D28EE5E21CB7180500E1B299 /* Info.plist */,
 				D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */,
 				D2A7F45A27EF6568005C32E2 /* README.md */,
@@ -181,10 +217,14 @@
 			files = (
 				D2A7F46327EF6FCC005C32E2 /* Player+CoreDataClass.swift in Sources */,
 				D28EE5DE1CB7180500E1B299 /* Persistence.swift in Sources */,
+				D270B67827F0326C00FEAA3C /* CardColors.swift in Sources */,
+				D270B66E27F0065F00FEAA3C /* CardBottom.swift in Sources */,
 				D2A7F46027EF6EC3005C32E2 /* ContentViewViewModel.swift in Sources */,
 				D2A7F46427EF6FCC005C32E2 /* Player+CoreDataProperties.swift in Sources */,
+				D270B67227F0228000FEAA3C /* Card.swift in Sources */,
 				D28EE5D71CB717F700E1B299 /* ContentView.swift in Sources */,
 				D28EE5E11CB7180500E1B299 /* JurgolApp.xcdatamodeld in Sources */,
+				D270B67027F0106800FEAA3C /* CardTop.swift in Sources */,
 				D28EE5D51CB717F700E1B299 /* JurgolAppApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
