@@ -57,7 +57,6 @@
 			children = (
 				D270B66D27F0065F00FEAA3C /* CardBottom.swift */,
 				D270B66F27F0106800FEAA3C /* CardTop.swift */,
-				D270B67127F0228000FEAA3C /* Card.swift */,
 			);
 			path = Shapes;
 			sourceTree = "<group>";
@@ -65,17 +64,17 @@
 		D270B67327F02D9A00FEAA3C /* Util */ = {
 			isa = PBXGroup;
 			children = (
-				D270B67627F0325A00FEAA3C /* Protocols */,
+				D270B67627F0325A00FEAA3C /* CardColors */,
 			);
 			path = Util;
 			sourceTree = "<group>";
 		};
-		D270B67627F0325A00FEAA3C /* Protocols */ = {
+		D270B67627F0325A00FEAA3C /* CardColors */ = {
 			isa = PBXGroup;
 			children = (
 				D270B67727F0326C00FEAA3C /* CardColors.swift */,
 			);
-			path = Protocols;
+			path = CardColors;
 			sourceTree = "<group>";
 		};
 		D28EE5C81CB717F700E1B299 = {
@@ -99,12 +98,12 @@
 			children = (
 				D2A7F45927EF653D005C32E2 /* ViewModel */,
 				D2A7F45827EF6539005C32E2 /* View */,
-				D2A7F45727EF6531005C32E2 /* CoreDataRelated */,
-				D28EE5D81CB7180500E1B299 /* Assets.xcassets */,
 				D270B67327F02D9A00FEAA3C /* Util */,
 				D270B66C27F005FC00FEAA3C /* Shapes */,
-				D28EE5DD1CB7180500E1B299 /* Persistence.swift */,
 				D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */,
+				D28EE5DD1CB7180500E1B299 /* Persistence.swift */,
+				D28EE5D81CB7180500E1B299 /* Assets.xcassets */,
+				D2A7F45727EF6531005C32E2 /* CoreDataRelated */,
 				D28EE5E21CB7180500E1B299 /* Info.plist */,
 				D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */,
 				D2A7F45A27EF6568005C32E2 /* README.md */,
@@ -133,6 +132,7 @@
 		D2A7F45827EF6539005C32E2 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				D270B67127F0228000FEAA3C /* Card.swift */,
 				D28EE5D61CB717F700E1B299 /* ContentView.swift */,
 			);
 			path = View;

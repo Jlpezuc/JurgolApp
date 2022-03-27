@@ -7,7 +7,10 @@
 
 import SwiftUI
 
-/// Vista que une los shapes de carta en una sola
+/// Vista que representa la carta de un jugador.
+/// - Warning: Las lineas comentadas son en caso de que se quiera un borde para la carta.
+/// - Parameter width: El ancho que se quiere para la carta.
+/// - Parameter type: La calidad de la carta.
 struct Card: View {
     
     enum CardType {
@@ -38,15 +41,15 @@ struct Card: View {
     }
     
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                CardTop()
-                    .fill(topGradient)
-                    .frame(width: width, height: width * 6 / 7)
-                CardBottom()
-                    .fill(bottomGradient)
-                    .frame(width: width, height: width * 21 / 28)
-            }
+//        ZStack {
+        VStack(spacing: 0) {
+            CardTop()
+                .fill(topGradient)
+                .frame(width: width, height: width * 6 / 7)
+            CardBottom()
+                .fill(bottomGradient)
+                .frame(width: width, height: width * 21 / 28)
+        }
 //            VStack(spacing: 0) {
 //                CardTop()
 //                    .stroke(lineWidth: 3)
@@ -55,7 +58,7 @@ struct Card: View {
 //                    .stroke(lineWidth: 3)
 //                    .frame(width: width, height: width * 21 / 28)
 //            }
-        }
+//        }
     }
 }
 
