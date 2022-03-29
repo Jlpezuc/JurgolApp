@@ -83,6 +83,23 @@
 			path = CardColors;
 			sourceTree = "<group>";
 		};
+		D277CCAD27F3CEAD000B95B7 /* UtilCases */ = {
+			isa = PBXGroup;
+			children = (
+				D277CCAE27F3CEBB000B95B7 /* ContentView */,
+			);
+			path = UtilCases;
+			sourceTree = "<group>";
+		};
+		D277CCAE27F3CEBB000B95B7 /* ContentView */ = {
+			isa = PBXGroup;
+			children = (
+				D28EE5D61CB717F700E1B299 /* ContentView.swift */,
+				D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */,
+			);
+			path = ContentView;
+			sourceTree = "<group>";
+		};
 		D28EE5C81CB717F700E1B299 = {
 			isa = PBXGroup;
 			children = (
@@ -102,8 +119,8 @@
 		D28EE5D31CB717F700E1B299 /* JurgolApp */ = {
 			isa = PBXGroup;
 			children = (
-				D2A7F45927EF653D005C32E2 /* ViewModel */,
-				D2A7F45827EF6539005C32E2 /* View */,
+				D277CCAD27F3CEAD000B95B7 /* UtilCases */,
+				D2A7F45827EF6539005C32E2 /* ModularViews */,
 				D270B67327F02D9A00FEAA3C /* Util */,
 				D270B66C27F005FC00FEAA3C /* Shapes */,
 				D2A7F45727EF6531005C32E2 /* CoreDataRelated */,
@@ -135,21 +152,12 @@
 			path = CoreDataRelated;
 			sourceTree = "<group>";
 		};
-		D2A7F45827EF6539005C32E2 /* View */ = {
+		D2A7F45827EF6539005C32E2 /* ModularViews */ = {
 			isa = PBXGroup;
 			children = (
 				D270B67127F0228000FEAA3C /* Card.swift */,
-				D28EE5D61CB717F700E1B299 /* ContentView.swift */,
 			);
-			path = View;
-			sourceTree = "<group>";
-		};
-		D2A7F45927EF653D005C32E2 /* ViewModel */ = {
-			isa = PBXGroup;
-			children = (
-				D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */,
-			);
-			path = ViewModel;
+			path = ModularViews;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

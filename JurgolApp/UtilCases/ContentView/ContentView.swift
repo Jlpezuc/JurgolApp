@@ -33,7 +33,7 @@ struct ContentView: View {
         List {
             ForEach(vm.players) { player in
                 VStack {
-                    Text("Jugador: " + player.name!)
+                    Text("Jugador: " + player.name)
                 }
             }
         }
