@@ -36,6 +36,8 @@ extension Player {
     @NSManaged public var goles: Int64
     
     @NSManaged public var partidos: Int64
+    
+    @NSManaged public var stringType: String
 
 }
 
@@ -70,5 +72,15 @@ extension Player {
             }
         }
         return Position.por
+    }
+    
+    var colors: CardColors {
+        if stringType == "Oro" {
+            return Gold()
+        } else if stringType == "Plata" {
+            return Silver()
+        } else {
+            return Bronze()
+        }
     }
 }
