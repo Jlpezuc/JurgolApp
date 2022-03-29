@@ -11,6 +11,10 @@
 		D270B67027F0106800FEAA3C /* CardTop.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B66F27F0106800FEAA3C /* CardTop.swift */; };
 		D270B67227F0228000FEAA3C /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B67127F0228000FEAA3C /* Card.swift */; };
 		D270B67827F0326C00FEAA3C /* CardColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = D270B67727F0326C00FEAA3C /* CardColors.swift */; };
+		D277CCA527F3BCFA000B95B7 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D277CCA427F3BCFA000B95B7 /* Extensions.swift */; };
+		D277CCA827F3C1E5000B95B7 /* Player+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = D277CCA627F3C1E4000B95B7 /* Player+CoreDataClass.swift */; };
+		D277CCA927F3C1E5000B95B7 /* Player+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = D277CCA727F3C1E4000B95B7 /* Player+CoreDataProperties.swift */; };
+		D277CCAC27F3C6CC000B95B7 /* EnumPosition.swift in Sources */ = {isa = PBXBuildFile; fileRef = D277CCAB27F3C6CC000B95B7 /* EnumPosition.swift */; };
 		D28EE5D51CB717F700E1B299 /* JurgolAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */; };
 		D28EE5D71CB717F700E1B299 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5D61CB717F700E1B299 /* ContentView.swift */; };
 		D28EE5D91CB7180500E1B299 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28EE5D81CB7180500E1B299 /* Assets.xcassets */; };
@@ -18,8 +22,6 @@
 		D28EE5DE1CB7180500E1B299 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5DD1CB7180500E1B299 /* Persistence.swift */; };
 		D28EE5E11CB7180500E1B299 /* JurgolApp.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */; };
 		D2A7F46027EF6EC3005C32E2 /* ContentViewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */; };
-		D2A7F46327EF6FCC005C32E2 /* Player+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A7F46127EF6FCC005C32E2 /* Player+CoreDataClass.swift */; };
-		D2A7F46427EF6FCC005C32E2 /* Player+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A7F46227EF6FCC005C32E2 /* Player+CoreDataProperties.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +29,11 @@
 		D270B66F27F0106800FEAA3C /* CardTop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTop.swift; sourceTree = "<group>"; };
 		D270B67127F0228000FEAA3C /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		D270B67727F0326C00FEAA3C /* CardColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardColors.swift; sourceTree = "<group>"; };
+		D277CCA427F3BCFA000B95B7 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		D277CCA627F3C1E4000B95B7 /* Player+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player+CoreDataClass.swift"; sourceTree = "<group>"; };
+		D277CCA727F3C1E4000B95B7 /* Player+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		D277CCAA27F3C392000B95B7 /* MyPlayground.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = MyPlayground.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		D277CCAB27F3C6CC000B95B7 /* EnumPosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnumPosition.swift; sourceTree = "<group>"; };
 		D28EE5D11CB717F700E1B299 /* JurgolApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JurgolApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JurgolAppApp.swift; sourceTree = "<group>"; };
 		D28EE5D61CB717F700E1B299 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -35,10 +42,7 @@
 		D28EE5DD1CB7180500E1B299 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		D28EE5E01CB7180500E1B299 /* JurgolApp.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = JurgolApp.xcdatamodel; sourceTree = "<group>"; };
 		D28EE5E21CB7180500E1B299 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D2A7F45A27EF6568005C32E2 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D2A7F45F27EF6EC3005C32E2 /* ContentViewViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewViewModel.swift; sourceTree = "<group>"; };
-		D2A7F46127EF6FCC005C32E2 /* Player+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player+CoreDataClass.swift"; sourceTree = "<group>"; };
-		D2A7F46227EF6FCC005C32E2 /* Player+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Player+CoreDataProperties.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,7 +76,9 @@
 		D270B67627F0325A00FEAA3C /* CardColors */ = {
 			isa = PBXGroup;
 			children = (
+				D277CCA427F3BCFA000B95B7 /* Extensions.swift */,
 				D270B67727F0326C00FEAA3C /* CardColors.swift */,
+				D277CCAB27F3C6CC000B95B7 /* EnumPosition.swift */,
 			);
 			path = CardColors;
 			sourceTree = "<group>";
@@ -100,13 +106,13 @@
 				D2A7F45827EF6539005C32E2 /* View */,
 				D270B67327F02D9A00FEAA3C /* Util */,
 				D270B66C27F005FC00FEAA3C /* Shapes */,
-				D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */,
-				D28EE5DD1CB7180500E1B299 /* Persistence.swift */,
-				D28EE5D81CB7180500E1B299 /* Assets.xcassets */,
 				D2A7F45727EF6531005C32E2 /* CoreDataRelated */,
+				D28EE5DD1CB7180500E1B299 /* Persistence.swift */,
+				D28EE5D41CB717F700E1B299 /* JurgolAppApp.swift */,
+				D277CCAA27F3C392000B95B7 /* MyPlayground.playground */,
+				D28EE5D81CB7180500E1B299 /* Assets.xcassets */,
 				D28EE5E21CB7180500E1B299 /* Info.plist */,
 				D28EE5DF1CB7180500E1B299 /* JurgolApp.xcdatamodeld */,
-				D2A7F45A27EF6568005C32E2 /* README.md */,
 				D28EE5DA1CB7180500E1B299 /* Preview Content */,
 			);
 			path = JurgolApp;
@@ -123,8 +129,8 @@
 		D2A7F45727EF6531005C32E2 /* CoreDataRelated */ = {
 			isa = PBXGroup;
 			children = (
-				D2A7F46127EF6FCC005C32E2 /* Player+CoreDataClass.swift */,
-				D2A7F46227EF6FCC005C32E2 /* Player+CoreDataProperties.swift */,
+				D277CCA627F3C1E4000B95B7 /* Player+CoreDataClass.swift */,
+				D277CCA727F3C1E4000B95B7 /* Player+CoreDataProperties.swift */,
 			);
 			path = CoreDataRelated;
 			sourceTree = "<group>";
@@ -215,13 +221,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D2A7F46327EF6FCC005C32E2 /* Player+CoreDataClass.swift in Sources */,
 				D28EE5DE1CB7180500E1B299 /* Persistence.swift in Sources */,
 				D270B67827F0326C00FEAA3C /* CardColors.swift in Sources */,
+				D277CCA927F3C1E5000B95B7 /* Player+CoreDataProperties.swift in Sources */,
 				D270B66E27F0065F00FEAA3C /* CardBottom.swift in Sources */,
+				D277CCAC27F3C6CC000B95B7 /* EnumPosition.swift in Sources */,
+				D277CCA827F3C1E5000B95B7 /* Player+CoreDataClass.swift in Sources */,
 				D2A7F46027EF6EC3005C32E2 /* ContentViewViewModel.swift in Sources */,
-				D2A7F46427EF6FCC005C32E2 /* Player+CoreDataProperties.swift in Sources */,
 				D270B67227F0228000FEAA3C /* Card.swift in Sources */,
+				D277CCA527F3BCFA000B95B7 /* Extensions.swift in Sources */,
 				D28EE5D71CB717F700E1B299 /* ContentView.swift in Sources */,
 				D28EE5E11CB7180500E1B299 /* JurgolApp.xcdatamodeld in Sources */,
 				D270B67027F0106800FEAA3C /* CardTop.swift in Sources */,

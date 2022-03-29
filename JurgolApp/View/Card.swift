@@ -41,7 +41,6 @@ struct Card: View {
     }
     
     var body: some View {
-//        ZStack {
         VStack(spacing: 0) {
             CardTop()
                 .fill(topGradient)
@@ -50,15 +49,12 @@ struct Card: View {
                 .fill(bottomGradient)
                 .frame(width: width, height: width * 21 / 28)
         }
-//            VStack(spacing: 0) {
-//                CardTop()
-//                    .stroke(lineWidth: 3)
-//                    .frame(width: width, height: width * 6 / 7)
-//                CardBottom()
-//                    .stroke(lineWidth: 3)
-//                    .frame(width: width, height: width * 21 / 28)
-//            }
-//        }
+    }
+}
+
+extension Card {
+    var numeros: some View {
+        EmptyView()
     }
 }
 
