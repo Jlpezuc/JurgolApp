@@ -2,7 +2,7 @@
 //  Player+CoreDataClass.swift
 //  JurgolApp
 //
-//  Created by Joaquín López Robertson on 26-03-22.
+//  Created by Joaquín López Robertson on 29-03-22.
 //
 //
 
