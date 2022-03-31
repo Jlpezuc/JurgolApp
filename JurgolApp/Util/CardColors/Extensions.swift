@@ -23,4 +23,8 @@ extension Int16 {
         }
         return false
     }
+    
+    var toString: String {
+        return String(self)
+    }
 }
