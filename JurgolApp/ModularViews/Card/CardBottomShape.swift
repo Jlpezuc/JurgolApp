@@ -53,6 +53,7 @@ struct CardBottom: Shape {
     }
 }
 
+
 struct CardBottom_Previews: PreviewProvider {
     static var previews: some View {
         CardBottom()
