@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 extension Player {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<Player> {
