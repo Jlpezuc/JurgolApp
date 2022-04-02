@@ -15,12 +15,12 @@ extension Card {
                 Text(String(player.average))
                     .formatAsAverage(widthCard: widthCard)
                 
-                Text(player.stringPosition)
+                Text(player.stringPosition!)
                     .formatAsPosition(widthCard: widthCard)
                 Rectangle()
                     .foregroundColor(.black)
                     .frame(width: widthCard * 1 / 8, height: 2)
-                Text(player.nacionality)
+                Text(player.country!)
                     .formatAsNacionality(widthCard: widthCard)
                 
             }
@@ -33,8 +33,9 @@ extension Card {
 extension Card {
     var numeros: some View {
         VStack(spacing: 10) {
-            Text(player.name)
+            TextField("Nombre", text: Binding($player.name)!)
                 .formatAsName(widthCard: widthCard)
+                .disabled(!editable)
             Rectangle()
                 .frame(width: widthCard * 4 / 5, height: 2)
                 .cornerRadius(3.0)
@@ -44,42 +45,42 @@ extension Card {
                     Spacer()
                     VStack(spacing: 0) {
                         HStack(spacing: 0) {
-                            Text(String(player.stat1))
+                            Text(String(player.stat1.asInt))
                                 .formatAsStat(widthCard: widthCard)
-                            Text("PAC")
+                            Text(player.golKeeper ? "EST" : "RIT")
                                 .formatAsNameStat(widthCard: widthCard)
                         }
                         HStack(spacing: 0) {
-                            Text(String(player.stat2))
+                            Text(String(player.stat2.asInt))
                                 .formatAsStat(widthCard: widthCard)
-                            Text("SHO")
+                            Text(player.golKeeper ? "PAR" : "TIR")
                                 .formatAsNameStat(widthCard: widthCard)
                         }
                         HStack(spacing: 0) {
-                            Text(String(player.stat3))
+                            Text(String(player.stat3.asInt))
                                 .formatAsStat(widthCard: widthCard)
-                            Text("PAS")
+                            Text(player.golKeeper ? "SAC" : "PAS")
                                 .formatAsNameStat(widthCard: widthCard)
                         }
                     }
                     Spacer()
                     VStack(spacing: 0) {
                         HStack(spacing: 0) {
-                            Text(String(player.stat4))
+                            Text(String(player.stat4.asInt))
                                 .formatAsStat(widthCard: widthCard)
-                            Text("DRI")
+                            Text(player.golKeeper ? "REF" : "REG")
                                 .formatAsNameStat(widthCard: widthCard)
                         }
                         HStack(spacing: 0) {
-                            Text(String(player.stat5))
+                            Text(String(player.stat5.asInt))
                                 .formatAsStat(widthCard: widthCard)
-                            Text("DEF")
+                            Text(player.golKeeper ? "DEF" : "VEL")
                                 .formatAsNameStat(widthCard: widthCard)
                         }
                         HStack(spacing: 0) {
-                            Text(String(player.stat6))
+                            Text(String(player.stat6.asInt))
                                 .formatAsStat(widthCard: widthCard)
-                            Text("PHY")
+                            Text(player.golKeeper ? "FIS" : "POS")
                                 .formatAsNameStat(widthCard: widthCard)
                         }
                     }
@@ -93,6 +94,7 @@ extension Card {
                         .foregroundColor(.black)
                     Spacer()
                 }
+                
             }
             Rectangle()
                 .frame(width: widthCard * 1 / 7, height: 2)
@@ -118,3 +120,4 @@ extension Card {
             .frame(width: widthCard, height: widthCard * 21 / 28)
     }
 }
+
