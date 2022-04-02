@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-extension Int16 {
+extension Int {
     
     var isEven: Bool {
         if self % 2 == 0 {
@@ -18,13 +18,16 @@ extension Int16 {
     }
     
     var isOdd: Bool {
-        if self % 2 != 0 {
-            return true
-        }
-        return false
+        return !isEven
     }
     
     var toString: String {
         return String(self)
+    }
+}
+
+extension Double {
+    var asInt: Int {
+        return Int(self)
     }
 }

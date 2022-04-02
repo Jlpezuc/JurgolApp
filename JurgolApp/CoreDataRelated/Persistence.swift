@@ -23,7 +23,6 @@ struct PersistenceController {
         }
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
-                #warning("fatalError provoca que la app se cierre")
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         })

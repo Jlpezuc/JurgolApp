@@ -52,3 +52,15 @@ extension Text {
             .frame(width: widthCard / 5, height: widthCard / 6)
     }
 }
+
+
+
+extension TextField {
+    func formatAsName(widthCard: CGFloat) -> some View {
+        self
+            .foregroundColor(.black)
+            .font(.system(size: widthCard / 8))
+            .frame(width: widthCard * 4 / 5, height: widthCard / 8)
+            .multilineTextAlignment(.center)
+    }
+}

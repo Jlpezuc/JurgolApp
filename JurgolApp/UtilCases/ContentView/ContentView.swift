@@ -8,33 +8,59 @@
 import SwiftUI
 import CoreData
 
-#warning("En caso de cambiar de nombre a ContentView, Hacer lo mismo con su ViewModel")
-
 struct ContentView: View {
     
     @ObservedObject var vm = ContentViewViewModel()
-    
-
-//    @FetchRequest(
-//        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-//        animation: .default)
-//    private var items: FetchedResults<Item>
 
     var body: some View {
-        VStack {
-            HStack {
-                TextField("Nombre", text: $vm.name)
-                Spacer()
-                Button(action: {vm.addPlayer()}) {
-                    Image(systemName: "plus")
-                }
-            }.padding()
-        }
-        List {
-            ForEach(vm.players) { player in
+        NavigationView {
+            ScrollView {
                 VStack {
-                    Text("Jugador: " + player.name)
+                    NavigationLink(
+                        destination: CreateACard(),
+                        label: {
+                            Text("Navigate")
+                        })
+                    ForEach(vm.players) {player in
+                        Card(width: 200, displayed: .constant(true), editable: .constant(false), player: player)
+                    }
                 }
+            }
+        }
+    }
+}
+
+struct CreateACard: View {
+    
+    @ObservedObject var vm = CreateACardViewModel()
+    
+    var body: some View {
+        ScrollView {
+            VStack {
+                Card(width: 300, displayed: .constant(true), editable: .constant(true), player: vm.newPlayer)
+                TextField("name", text: Binding($vm.newPlayer.name)!)
+                Slider(value: $vm.newPlayer.stat1, in: 1...99, step: 1)
+                Slider(value: $vm.newPlayer.stat2, in: 1...99, step: 1)
+                Slider(value: $vm.newPlayer.stat3, in: 1...99, step: 1)
+                Slider(value: $vm.newPlayer.stat4, in: 1...99, step: 1)
+                Slider(value: $vm.newPlayer.stat5, in: 1...99, step: 1)
+                Slider(value: $vm.newPlayer.stat6, in: 1...99, step: 1)
+                Picker(selection: $vm.newPlayer.stringPosition, label: /*@START_MENU_TOKEN@*/Text("Picker")/*@END_MENU_TOKEN@*/, content: {
+                    ForEach(Position.allCases) {position in
+                        Text(position.acronym).tag(position.acronym.uppercased())
+                    }
+                })
+                Group {
+                    Picker(selection: $vm.newPlayer.stringType, label: /*@START_MENU_TOKEN@*/Text("Picker")/*@END_MENU_TOKEN@*/, content: {
+                        Text("Oro").tag("Oro")
+                        Text("Plata").tag("Plata")
+                        Text("Bronce").tag("Bronce")
+                    })
+                    Button(action: {vm.addPlayer()}, label: {
+                        /*@START_MENU_TOKEN@*/Text("Button")/*@END_MENU_TOKEN@*/
+                    })
+                }
+
             }
         }
     }
