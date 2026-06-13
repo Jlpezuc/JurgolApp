@@ -95,4 +95,18 @@ export const styles = StyleSheet.create({
     color: Color.fg1,
     letterSpacing: 0.5,
   },
+  btnLogout: {
+    backgroundColor: Color.chalk,
+    paddingVertical: 16,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+  },
+  btnLogoutText: {
+    fontFamily: Font.body.bold,
+    fontSize: TextSize.sm,
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
 });

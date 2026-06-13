@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Color, Space } from '@/constants/design';
-import { ALL_SQUADS, PlayerPosition, SQUAD_DETAIL_MOCK } from '@/constants/squads.mocks';
-import { styles } from './add-player.styles';
 import { InvitePlayerModal } from '@/components/squad-details/invite-modal/invite-modal';
+import { Color, Space } from '@/constants/design';
+import { PlayerPosition } from '@/constants/squads.mocks';
+import { usePlayer } from '@/hooks/usePlayer';
+import { supabase } from '@/lib/supabase';
+import { styles } from './add-player.styles';
 
 // ── Position config ──────────────────────────────────────────────────────────
 
@@ -20,29 +23,16 @@ const POSITIONS: { key: PlayerPosition; short: string; label: string }[] = [
   { key: PlayerPosition.DEL, short: 'DEL', label: 'Delantero' },
 ];
 
-// Decorative stats by position — shown on the card preview
-const STATS_BY_POSITION: Record<
-  PlayerPosition,
-  { rating: number; stats: [string, number][] }
-> = {
-  [PlayerPosition.PO]:  { rating: 70, stats: [['PAC', 62], ['TIR', 38], ['PAS', 55], ['REG', 50], ['DEF', 78], ['FÍS', 72]] },
-  [PlayerPosition.DEF]: { rating: 73, stats: [['PAC', 70], ['TIR', 55], ['PAS', 68], ['REG', 65], ['DEF', 82], ['FÍS', 78]] },
-  [PlayerPosition.MC]:  { rating: 71, stats: [['PAC', 72], ['TIR', 68], ['PAS', 78], ['REG', 75], ['DEF', 65], ['FÍS', 70]] },
-  [PlayerPosition.DEL]: { rating: 74, stats: [['PAC', 80], ['TIR', 82], ['PAS', 68], ['REG', 78], ['DEF', 50], ['FÍS', 72]] },
-};
-
 // ── Card preview ─────────────────────────────────────────────────────────────
 
 type CardProps = {
   name: string;
   imageUri: string | null;
   position: PlayerPosition;
-  teamInitials: string;
   onPressPhoto: () => void;
 };
 
-function PlayerCard({ name, imageUri, position, teamInitials, onPressPhoto }: CardProps) {
-  const config = STATS_BY_POSITION[position];
+function PlayerCard({ name, imageUri, position, onPressPhoto }: CardProps) {
   const displayName = name.trim().toUpperCase();
 
   return (
@@ -51,12 +41,8 @@ function PlayerCard({ name, imageUri, position, teamInitials, onPressPhoto }: Ca
 
       <View style={styles.cardTopRow}>
         <View>
-          <Text style={styles.cardRating}>{config.rating}</Text>
+          <Text style={styles.cardRating}>50</Text>
           <Text style={styles.cardRatingLabel}>{position}</Text>
-        </View>
-        <View style={styles.cardTeamBadge}>
-          <Text style={styles.cardTeamBadgeText}>{teamInitials}</Text>
-          <Text style={styles.cardTeamBadgePlus}>+</Text>
         </View>
       </View>
 
@@ -80,17 +66,6 @@ function PlayerCard({ name, imageUri, position, teamInitials, onPressPhoto }: Ca
       >
         {displayName || 'TU NOMBRE'}
       </Text>
-
-      <View style={styles.cardDivider} />
-
-      <View style={styles.cardStats}>
-        {config.stats.map(([label, value]) => (
-          <View key={label} style={styles.cardStat}>
-            <Text style={styles.cardStatValue}>{value}</Text>
-            <Text style={styles.cardStatLabel}>{label}</Text>
-          </View>
-        ))}
-      </View>
     </Pressable>
   );
 }
@@ -100,13 +75,27 @@ function PlayerCard({ name, imageUri, position, teamInitials, onPressPhoto }: Ca
 export default function AddPlayerScreen() {
   const insets = useSafeAreaInsets();
   const { squadId } = useLocalSearchParams<{ squadId?: string }>();
-  const squad = ALL_SQUADS.find((s) => s.id === squadId) ?? ALL_SQUADS[0];
+  const { player: currentPlayer } = usePlayer();
 
+  const [teamName, setTeamName] = useState('');
+  const [memberCount, setMemberCount] = useState(0);
   const [name, setName] = useState('');
   const [position, setPosition] = useState<PlayerPosition>(PlayerPosition.MC);
   const [number, setNumber] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!squadId) return;
+    Promise.all([
+      supabase.from('teams').select('name').eq('id', squadId).single(),
+      supabase.from('team_members').select('id', { count: 'exact', head: true }).eq('team_id', squadId),
+    ]).then(([{ data: t }, { count }]) => {
+      if (t) setTeamName(t.name);
+      setMemberCount(count ?? 0);
+    });
+  }, [squadId]);
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -115,13 +104,52 @@ export default function AddPlayerScreen() {
       aspect: [1, 1],
       quality: 0.85,
     });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    if (!result.canceled) setImageUri(result.assets[0].uri);
+  }
+
+  async function handleSave() {
+    if (!squadId || !name.trim()) return;
+    setSaving(true);
+
+    const { data: player, error } = await supabase
+      .from('players')
+      .insert({ full_name: name.trim(), position, overall: 50 })
+      .select('id')
+      .single();
+
+    if (error || !player) {
+      Alert.alert('Error', error?.message ?? 'No se pudo crear el jugador.');
+      setSaving(false);
+      return;
     }
+
+    await supabase.from('team_members').insert({
+      team_id: squadId,
+      player_id: player.id,
+      role: 'player',
+      jersey_number: number ? parseInt(number, 10) : null,
+    });
+
+    setSaving(false);
+
+    Alert.alert(
+      'Jugador añadido',
+      `ID del jugador:\n${player.id}\n\nGuárdalo para añadirlo a otros equipos.`,
+      [
+        {
+          text: 'Copiar ID',
+          onPress: () => {
+            Clipboard.setStringAsync(player.id);
+            router.back();
+          },
+        },
+        { text: 'Cerrar', onPress: () => router.back() },
+      ]
+    );
   }
 
   const canSave = name.trim().length > 0;
-  const teamInitials = squad.name.slice(0, 2).toUpperCase();
+  const teamInitials = teamName.slice(0, 2).toUpperCase() || '??';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -133,7 +161,7 @@ export default function AddPlayerScreen() {
           <Ionicons name="chevron-back" size={20} color={Color.fg1} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerEyebrow}>{squad.name.toUpperCase()}</Text>
+          <Text style={styles.headerEyebrow}>{teamName.toUpperCase()}</Text>
           <Text style={styles.headerTitle}>Añadir jugador</Text>
         </View>
         <Pressable style={styles.headerInvite} onPress={() => setInviteOpen(true)}>
@@ -154,7 +182,6 @@ export default function AddPlayerScreen() {
             name={name}
             imageUri={imageUri}
             position={position}
-            teamInitials={teamInitials}
             onPressPhoto={pickImage}
           />
           <Text style={styles.cardHint}>Toca la tarjeta para subir la foto</Text>
@@ -215,11 +242,14 @@ export default function AddPlayerScreen() {
             </View>
 
             <Pressable
-              style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-              disabled={!canSave}
-              onPress={() => router.back()}
+              style={[styles.saveBtn, (!canSave || saving) && styles.saveBtnDisabled]}
+              disabled={!canSave || saving}
+              onPress={handleSave}
             >
-              <Text style={styles.saveBtnText}>Añadir jugador</Text>
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.saveBtnText}>Añadir jugador</Text>
+              }
             </Pressable>
           </View>
         </View>
@@ -228,10 +258,13 @@ export default function AddPlayerScreen() {
       <InvitePlayerModal
         visible={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        teamName={squad.name}
+        teamName={teamName}
         teamInitials={teamInitials}
-        playerCount={SQUAD_DETAIL_MOCK.players.length}
+        playerCount={memberCount}
         maxPlayers={15}
+        squadId={squadId ?? ''}
+        currentPlayerId={currentPlayer?.id ?? ''}
+        onPlayerAdded={() => { setMemberCount((c) => c + 1); router.back(); }}
       />
     </View>
   );

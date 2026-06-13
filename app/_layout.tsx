@@ -17,11 +17,12 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Redirect, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { useSession } from '@/hooks/useSession';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,15 +46,25 @@ export default function RootLayout() {
     JetBrainsMono_700Bold,
   });
 
+  const { session, loading } = useSession();
+  const segments = useSegments();
+
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || loading) return null;
+
+  const inAuthGroup = segments[0] === '(auth)';
+
+  if (!session && !inAuthGroup) return <Redirect href="/(auth)" />;
+  if (session && inAuthGroup) return <Redirect href="/(tabs)" />;
 
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

@@ -1,41 +1,149 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ScrollView, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RecentResult } from '@/components/squad-card';
-import { Color } from '@/constants/design';
-import { ALL_SQUADS, SQUAD_DETAIL_MOCK } from '@/constants/squads.mocks';
-import { styles } from './squad-detail.styles';
 import { SquadLineup } from '@/components/squad-details/squad-lineup/squad-lineup';
+import { Color } from '@/constants/design';
+import { AttendanceStatus, PlayerPosition, SquadDetail } from '@/constants/squads.mocks';
+import { usePlayer } from '@/hooks/usePlayer';
+import { supabase } from '@/lib/supabase';
+import { styles } from './squad-detail.styles';
 
-const RESULT_COLORS: Record<RecentResult, string> = {
-  W: Color.grass500,
-  D: Color.warning,
-  L: Color.clay,
+type TeamData = {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  description: string | null;
+  logo_url: string | null;
 };
 
-const RESULT_LABELS: Record<RecentResult, string> = {
-  W: 'G',
-  D: 'E',
-  L: 'P',
+type MemberRow = {
+  player_id: string;
+  role: string;
+  jersey_number: number | null;
+  players: {
+    id: string;
+    full_name: string;
+    position: string | null;
+    overall: number | null;
+  };
+};
+
+type MatchRow = {
+  id: string;
+  opponent_name: string;
+  date: string;
+  score_us: number | null;
+  score_them: number | null;
+  status: 'scheduled' | 'played' | 'cancelled';
+  match_attendance: { player_id: string; status: string }[];
+};
+
+const POSITION_MAP: Record<string, PlayerPosition> = {
+  PO: PlayerPosition.PO,
+  DEF: PlayerPosition.DEF,
+  MC: PlayerPosition.MC,
+  DEL: PlayerPosition.DEL,
+};
+
+const ATTENDANCE_MAP: Record<string, AttendanceStatus> = {
+  going: AttendanceStatus.Going,
+  maybe: AttendanceStatus.Maybe,
+  not_going: AttendanceStatus.NotGoing,
 };
 
 export default function SquadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const squad = ALL_SQUADS.find((s) => s.id === id);
+  const { player: currentPlayer } = usePlayer();
+  const [team, setTeam] = useState<TeamData | null>(null);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!squad) {
+  useFocusEffect(useCallback(() => {
+    async function load() {
+      const [{ data: teamData }, { data: memberData }, { data: matchData }] = await Promise.all([
+        supabase.from('teams').select('*').eq('id', id).single(),
+        supabase
+          .from('team_members')
+          .select('player_id, role, jersey_number, players(id, full_name, position, overall)')
+          .eq('team_id', id),
+        supabase
+          .from('matches')
+          .select('id, opponent_name, date, score_us, score_them, status, match_attendance(player_id, status)')
+          .eq('team_id', id)
+          .order('date', { ascending: false }),
+      ]);
+      setTeam(teamData ?? null);
+      setMembers((memberData as MemberRow[]) ?? []);
+      setMatches((matchData as MatchRow[]) ?? []);
+      setLoading(false);
+    }
+    if (id) load();
+  }, [id]));
+
+  if (loading) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
-        <Text style={{ color: Color.fgOnPitch, padding: 20 }}>Equipo no encontrado.</Text>
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color={Color.pitch} />
       </View>
     );
   }
 
-  const won = squad.played - squad.drawn - squad.lost;
+  if (!team) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <Text style={{ color: Color.fg2, padding: 20 }}>Equipo no encontrado.</Text>
+      </View>
+    );
+  }
+
+  const isCaptain = team.created_by === currentPlayer?.id;
+  const captain = members.find((m) => m.player_id === team.created_by);
+  const captainName = captain?.players?.full_name ?? '—';
+  const createdYear = new Date(team.created_at).getFullYear();
+
+  // Record stats from played matches
+  const played = matches.filter((m) => m.status === 'played');
+  const won   = played.filter((m) => (m.score_us ?? 0) > (m.score_them ?? 0)).length;
+  const drawn = played.filter((m) => m.score_us === m.score_them && m.score_us !== null).length;
+  const lost  = played.filter((m) => (m.score_us ?? 0) < (m.score_them ?? 0)).length;
+  const winRate = played.length > 0 ? Math.round((won / played.length) * 100) : null;
+  const recentForm = played
+    .slice(0, 5)
+    .map((m) =>
+      (m.score_us ?? 0) > (m.score_them ?? 0) ? 'W' : m.score_us === m.score_them ? 'D' : 'L'
+    )
+    .reverse();
+
+  // Next match for attendance
+  const nextMatch = matches.find((m) => m.status === 'scheduled');
+  const attendanceMap = Object.fromEntries(
+    (nextMatch?.match_attendance ?? []).map((a) => [a.player_id, a.status])
+  );
+
+  const squadDetail: SquadDetail = {
+    squadId: team.id,
+    nextMatchDate: nextMatch?.date ?? '',
+    players: members.map((m, i) => {
+      const nameParts = (m.players?.full_name ?? 'Jugador').split(' ');
+      return {
+        id: m.player_id,
+        firstName: nameParts[0] ?? 'Jugador',
+        lastName: nameParts.slice(1).join(' ') || '—',
+        number: m.jersey_number ?? i + 1,
+        position: POSITION_MAP[m.players?.position ?? ''] ?? PlayerPosition.MC,
+        overall: m.players?.overall ?? 0,
+        attendance: ATTENDANCE_MAP[attendanceMap[m.player_id] ?? 'maybe'] ?? AttendanceStatus.Maybe,
+        isCaptain: m.player_id === team.created_by,
+      };
+    }),
+  };
 
   return (
     <View style={styles.root}>
@@ -47,15 +155,10 @@ export default function SquadDetailScreen() {
         showsVerticalScrollIndicator={false}
         bounces
       >
-        {/* ── Header bar ────────────────────────────────────────────────── */}
+        {/* Header bar */}
         <View style={styles.header}>
           <View style={styles.headerBtn}>
-            <Ionicons
-              name="chevron-back"
-              size={18}
-              color={Color.fg3}
-              onPress={() => router.back()}
-            />
+            <Ionicons name="chevron-back" size={18} color={Color.fg3} onPress={() => router.back()} />
           </View>
           <Text style={styles.headerTitle}>Detalle de equipo</Text>
           <View style={styles.headerBtn}>
@@ -63,34 +166,19 @@ export default function SquadDetailScreen() {
           </View>
         </View>
 
-        {/* ── Hero card ─────────────────────────────────────────────────── */}
+        {/* Hero card */}
         <View style={styles.heroCard}>
           <View style={styles.heroTop}>
-            <View style={[styles.avatarWrapper, { backgroundColor: squad.color }]}>
-              <Text style={styles.avatarText}>
-                {squad.name.slice(0, 2).toUpperCase()}
-              </Text>
+            <View style={[styles.avatarWrapper, { backgroundColor: Color.pitch }]}>
+              <Text style={styles.avatarText}>{team.name.slice(0, 2).toUpperCase()}</Text>
             </View>
-
             <View style={styles.heroMeta}>
-              <Text style={styles.heroYear}>Desde {squad.createdYear}</Text>
-              <Text style={styles.heroName}>{squad.name}</Text>
+              <Text style={styles.heroYear}>Desde {createdYear}</Text>
+              <Text style={styles.heroName}>{team.name}</Text>
               <View style={styles.roleBadgeRow}>
-                <View
-                  style={[
-                    styles.roleBadge,
-                    squad.role === 'Capitán'
-                      ? styles.roleBadgeCaptain
-                      : styles.roleBadgeMember,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.roleBadgeText,
-                      squad.role !== 'Capitán' && styles.roleBadgeTextMember,
-                    ]}
-                  >
-                    {squad.role === 'Capitán' ? '⚽ Capitán' : '👤 Jugador'}
+                <View style={[styles.roleBadge, isCaptain ? styles.roleBadgeCaptain : styles.roleBadgeMember]}>
+                  <Text style={[styles.roleBadgeText, !isCaptain && styles.roleBadgeTextMember]}>
+                    {isCaptain ? '⚽ Capitán' : '👤 Jugador'}
                   </Text>
                 </View>
               </View>
@@ -102,21 +190,22 @@ export default function SquadDetailScreen() {
           <View style={styles.heroStats}>
             <View style={styles.heroStatItem}>
               <Text style={styles.heroStatLabel}>Jugadores</Text>
-              <Text style={styles.heroStatValue}>{squad.playerCount}</Text>
+              <Text style={styles.heroStatValue}>{members.length}</Text>
             </View>
             <View style={styles.heroStatItem}>
               <Text style={styles.heroStatLabel}>Capitán</Text>
-              <Text style={styles.heroStatValue}>{squad.captainName}</Text>
+              <Text style={styles.heroStatValue}>{captainName}</Text>
             </View>
           </View>
         </View>
 
-        {/* ── Light content ─────────────────────────────────────────────── */}
+        {/* Light content */}
         <View style={styles.lightSection}>
+          {/* Record card */}
           <View style={styles.recordCard}>
             <View style={styles.recordHeader}>
               <Text style={styles.recordTitle}>Récord</Text>
-              <Text style={styles.recordSubtitle}>{squad.played} partidos</Text>
+              <Text style={styles.recordSubtitle}>{played.length} partidos</Text>
             </View>
 
             <View style={styles.statsRow}>
@@ -125,11 +214,11 @@ export default function SquadDetailScreen() {
                 <Text style={styles.statLabel}>PG</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>{squad.drawn}</Text>
+                <Text style={styles.statValue}>{drawn}</Text>
                 <Text style={styles.statLabel}>PE</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={[styles.statValue, styles.statValueLost]}>{squad.lost}</Text>
+                <Text style={[styles.statValue, styles.statValueLost]}>{lost}</Text>
                 <Text style={styles.statLabel}>PP</Text>
               </View>
             </View>
@@ -140,24 +229,33 @@ export default function SquadDetailScreen() {
               <View style={styles.formLeft}>
                 <Text style={styles.formLabel}>Forma reciente</Text>
                 <View style={styles.formBadges}>
-                  {squad.recentForm.map((result, i) => (
-                    <View
-                      key={i}
-                      style={[styles.formBadge, { backgroundColor: RESULT_COLORS[result] }]}
-                    >
-                      <Text style={styles.formBadgeText}>{RESULT_LABELS[result]}</Text>
-                    </View>
-                  ))}
+                  {recentForm.length === 0 ? (
+                    <Text style={{ color: Color.fg4, fontSize: 12, marginTop: 4 }}>Sin partidos aún</Text>
+                  ) : (
+                    recentForm.map((r, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.formBadge,
+                          { backgroundColor: r === 'W' ? Color.grass500 : r === 'D' ? Color.warning : Color.clay },
+                        ]}
+                      >
+                        <Text style={styles.formBadgeText}>{r === 'W' ? 'G' : r === 'D' ? 'E' : 'P'}</Text>
+                      </View>
+                    ))
+                  )}
                 </View>
               </View>
               <View style={styles.winRateBlock}>
-                <Text style={styles.winRateValue}>{squad.winRate}%</Text>
+                <Text style={[styles.winRateValue, winRate === null && { color: Color.fg3 }]}>
+                  {winRate !== null ? `${winRate}%` : '—'}
+                </Text>
                 <Text style={styles.winRateLabel}>Win Rate</Text>
               </View>
             </View>
           </View>
 
-          <SquadLineup detail={SQUAD_DETAIL_MOCK} />
+          <SquadLineup detail={squadDetail} />
         </View>
       </ScrollView>
     </View>

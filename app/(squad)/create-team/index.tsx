@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -12,6 +13,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '@/lib/supabase';
+import { usePlayer } from '@/hooks/usePlayer';
 import { styles } from './create-team.styles';
 
 const TEAM_COLORS = [
@@ -32,10 +35,13 @@ const MODALITIES = [
 const MAX_NAME = 40;
 
 export default function CreateTeamScreen() {
+  const { player } = usePlayer();
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState(TEAM_COLORS[0].id);
   const [selectedModality, setSelectedModality] = useState(MODALITIES[1].id);
+  const [loading, setLoading] = useState(false);
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -57,19 +63,42 @@ export default function CreateTeamScreen() {
     }
   }
 
-  function handleCreate() {
+  async function handleCreate() {
     if (!name.trim()) {
       Alert.alert('Falta el nombre', 'Por favor ingresa un nombre para el equipo.');
       return;
     }
-    // TODO: persist team
-    const team = {
-      name: name.trim(),
-      color: TEAM_COLORS.find((c) => c.id === selectedColor)?.hex,
-      modality: selectedModality,
-      logoUri,
-    };
-    console.log('Crear equipo:', team);
+    if (!player) {
+      Alert.alert('Error', 'No se encontró tu perfil de jugador.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { data: team, error } = await supabase
+      .from('teams')
+      .insert({
+        name: name.trim(),
+        description: description.trim() || null,
+        created_by: player.id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      setLoading(false);
+      return;
+    }
+
+    // Add creator as captain in team_members
+    await supabase.from('team_members').insert({
+      team_id: team.id,
+      player_id: player.id,
+      role: 'captain',
+    });
+
+    setLoading(false);
     router.back();
   }
 
@@ -115,10 +144,24 @@ export default function CreateTeamScreen() {
                 value={name}
                 onChangeText={(t) => setName(t.slice(0, MAX_NAME))}
                 maxLength={MAX_NAME}
-                returnKeyType="done"
+                returnKeyType="next"
               />
               <Text style={styles.charCount}>{name.length}/{MAX_NAME}</Text>
             </View>
+          </View>
+
+          {/* Description */}
+          <View style={styles.fieldSection}>
+            <Text style={styles.fieldLabel}>Descripción · Opcional</Text>
+            <TextInput
+              style={[styles.textInput, { minHeight: 72, paddingRight: 16 }]}
+              placeholder="Ej: Equipo del barrio, jugamos los sábados"
+              placeholderTextColor="#BBBBBB"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              returnKeyType="done"
+            />
           </View>
 
           {/* Color */}
@@ -174,8 +217,11 @@ export default function CreateTeamScreen() {
         </View>
 
         {/* Create button */}
-        <TouchableOpacity style={styles.createBtn} onPress={handleCreate} activeOpacity={0.85}>
-          <Text style={styles.createBtnText}>Crear equipo</Text>
+        <TouchableOpacity style={styles.createBtn} onPress={handleCreate} activeOpacity={0.85} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.createBtnText}>Crear equipo</Text>
+          }
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
