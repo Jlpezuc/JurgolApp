@@ -25,12 +25,14 @@ type MemberRow = {
   player_id: string;
   role: string;
   jersey_number: number | null;
+  status: 'pending' | 'accepted' | 'rejected';
   players: {
     id: string;
     full_name: string;
     position: string | null;
     overall: number | null;
     user_id: string | null;
+    has_account: boolean | null;
   };
 };
 
@@ -72,8 +74,9 @@ export default function SquadDetailScreen() {
         supabase.from('teams').select('*').eq('id', id).single(),
         supabase
           .from('team_members')
-          .select('player_id, role, jersey_number, players(id, full_name, position, overall, user_id)')
-          .eq('team_id', id),
+          .select('player_id, role, jersey_number, status, players(id, full_name, position, overall, user_id, has_account)')
+          .eq('team_id', id)
+          .neq('status', 'rejected'),
         supabase
           .from('matches')
           .select('id, opponent_name, date, score_us, score_them, status, match_attendance(player_id, status)')
@@ -169,6 +172,8 @@ export default function SquadDetailScreen() {
         attendance: ATTENDANCE_MAP[attendanceMap[m.player_id] ?? 'maybe'] ?? AttendanceStatus.Maybe,
         isCaptain: m.player_id === team.created_by,
         userId: m.players?.user_id ?? null,
+        hasAccount: m.players?.has_account ?? false,
+        status: (m.status === 'pending' ? 'pending' : 'accepted') as 'pending' | 'accepted',
       };
     }),
   };

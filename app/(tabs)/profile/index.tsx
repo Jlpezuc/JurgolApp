@@ -1,8 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { styles } from './profile.styles';
+import { Color } from '@/constants/design';
 import { usePlayer } from '@/hooks/usePlayer';
+import { useNotifications } from '@/hooks/useNotifications';
 
 function getInitials(name: string) {
   return name
@@ -15,6 +19,7 @@ function getInitials(name: string) {
 
 export default function ProfileScreen() {
   const { player } = usePlayer();
+  const { unreadCount } = useNotifications();
 
   const displayName = player?.full_name ?? '—';
   const initials = player?.full_name ? getInitials(player.full_name) : '?';
@@ -23,7 +28,21 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.pageTitle}>Perfil</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.pageTitle}>Perfil</Text>
+          <TouchableOpacity
+            style={styles.bellBtn}
+            onPress={() => router.push('/notifications')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Color.fg1} />
+            {unreadCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.avatarCard}>
           <View style={styles.avatar}>

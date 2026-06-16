@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Share, Text, View } from 'react-native';
 
-import { Color } from '@/constants/design';
+import { Color, Font } from '@/constants/design';
 import {
   AttendanceStatus,
   PlayerPosition,
@@ -48,6 +48,12 @@ function getInitials(firstName: string, lastName: string) {
   return (firstName[0] + lastName[0]).toUpperCase();
 }
 
+function invitePlayerToApp(player: SquadPlayer) {
+  Share.share({
+    message: `¡Hola ${player.firstName}! Te invito a unirte a JurgolApp para seguir al equipo, confirmar asistencia a los partidos y mucho más. Descárgala y crea tu cuenta.`,
+  }).catch(() => {});
+}
+
 function PlayerRowItem({
   player,
   isLast,
@@ -61,9 +67,15 @@ function PlayerRowItem({
   onSelect: () => void;
   onRemove: () => void;
 }) {
+  const isPending = player.status === 'pending';
+
   return (
     <Pressable
-      style={[styles.playerRow, isLast && styles.playerRowLast]}
+      style={[
+        styles.playerRow,
+        isLast && styles.playerRowLast,
+        isPending && { backgroundColor: Color.field, opacity: 0.7 },
+      ]}
       onPress={onSelect}
     >
       <View style={[styles.playerAvatar, player.isCaptain && styles.playerAvatarCaptain]}>
@@ -81,16 +93,59 @@ function PlayerRowItem({
         </View>
 
         {!selected && (
-          <View style={styles.playerMeta}>
-            <View style={[styles.positionBadge, { backgroundColor: POSITION_BADGE_COLOR[player.position] }]}>
-              <Text style={styles.positionBadgeText}>{player.position}</Text>
+          isPending ? (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              marginTop: 2,
+            }}>
+              <Ionicons name="time-outline" size={11} color={Color.warning} />
+              <Text style={{
+                fontFamily: Font.mono.medium,
+                fontSize: 10,
+                color: Color.warning,
+                letterSpacing: 0.8,
+              }}>
+                PENDIENTE
+              </Text>
             </View>
-            <Text style={styles.playerNumber}>#{player.number}</Text>
-            <View style={[styles.attendanceDot, { backgroundColor: ATTENDANCE_DOT_COLOR[player.attendance] }]} />
-            <Text style={styles.attendanceLabel}>{player.attendance}</Text>
-          </View>
+          ) : (
+            <View style={styles.playerMeta}>
+              <View style={[styles.positionBadge, { backgroundColor: POSITION_BADGE_COLOR[player.position] }]}>
+                <Text style={styles.positionBadgeText}>{player.position}</Text>
+              </View>
+              <Text style={styles.playerNumber}>#{player.number}</Text>
+              <View style={[styles.attendanceDot, { backgroundColor: ATTENDANCE_DOT_COLOR[player.attendance] }]} />
+              <Text style={styles.attendanceLabel}>{player.attendance}</Text>
+            </View>
+          )
         )}
       </View>
+
+      {!selected && !isPending && !player.hasAccount && (
+        <Pressable
+          onPress={() => invitePlayerToApp(player)}
+          hitSlop={6}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderRadius: 999,
+            borderWidth: 1.5,
+            borderColor: Color.grass400,
+            backgroundColor: Color.grass50,
+            marginRight: 8,
+          }}
+        >
+          <Ionicons name="person-add-outline" size={13} color={Color.grass600} />
+          <Text style={{ fontFamily: Font.body.bold, fontSize: 12, color: Color.grass600 }}>
+            Invitar
+          </Text>
+        </Pressable>
+      )}
 
       {selected ? (
         <Pressable
@@ -107,6 +162,8 @@ function PlayerRowItem({
         >
           <Ionicons name="trash-outline" size={18} color={Color.clay} />
         </Pressable>
+      ) : isPending ? (
+        <Ionicons name="hourglass-outline" size={18} color={Color.warning} />
       ) : (
         <View style={styles.playerOvr}>
           <Text style={styles.ovrValue}>{player.overall}</Text>

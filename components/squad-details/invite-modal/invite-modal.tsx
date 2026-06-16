@@ -135,12 +135,13 @@ export function InvitePlayerModal({
   const [loadingKnown, setLoadingKnown] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
 
-  const [playerId, setPlayerId] = useState('');
+  const [username, setUsername] = useState('');
   const [foundPlayer, setFoundPlayer] = useState<KnownPlayer | null>(null);
   const [searching, setSearching] = useState(false);
 
   const [pendingPlayer, setPendingPlayer] = useState<KnownPlayer | null>(null);
   const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteOnly, setInviteOnly] = useState(false);
 
   useEffect(() => {
     if (!visible || !currentPlayerId || !squadId) return;
@@ -210,10 +211,11 @@ export function InvitePlayerModal({
   }, [visible, currentPlayerId, squadId]);
 
   function handleClose() {
-    setPlayerId('');
+    setUsername('');
     setFoundPlayer(null);
     setPendingPlayer(null);
     setInviteMessage('');
+    setInviteOnly(false);
     onClose();
   }
 
@@ -222,6 +224,13 @@ export function InvitePlayerModal({
       addPlayerDirect(player);
       return;
     }
+    setInviteOnly(false);
+    setInviteMessage('');
+    setPendingPlayer(player);
+  }
+
+  function handleSelectByUsername(player: KnownPlayer) {
+    setInviteOnly(true);
     setInviteMessage('');
     setPendingPlayer(player);
   }
@@ -229,10 +238,11 @@ export function InvitePlayerModal({
   function handleBackFromMessage() {
     setPendingPlayer(null);
     setInviteMessage('');
+    setInviteOnly(false);
   }
 
   async function handleSearch() {
-    const trimmed = playerId.trim();
+    const trimmed = username.trim();
     if (!trimmed) return;
     setSearching(true);
     setFoundPlayer(null);
@@ -240,13 +250,13 @@ export function InvitePlayerModal({
     const { data } = await supabase
       .from('players')
       .select('id, full_name, position, overall, user_id')
-      .eq('id', trimmed)
+      .ilike('username', trimmed)
       .single();
 
     setSearching(false);
 
     if (!data) {
-      Alert.alert('No encontrado', 'No existe un jugador con ese ID.');
+      Alert.alert('No encontrado', 'No existe un jugador con ese username.');
       return;
     }
     setFoundPlayer(data as KnownPlayer);
@@ -273,6 +283,18 @@ export function InvitePlayerModal({
   async function handleSendInvite() {
     if (!pendingPlayer) return;
     setAddingId(pendingPlayer.id);
+
+    if (inviteOnly) {
+      await supabase.from('notifications').insert({
+        recipient_player_id: pendingPlayer.id,
+        type: 'team_invitation',
+        message: inviteMessage.trim() || null,
+        team_member_id: null,
+      });
+      setAddingId(null);
+      handleClose();
+      return;
+    }
 
     const { data: member, error } = await supabase
       .from('team_members')
@@ -347,7 +369,7 @@ export function InvitePlayerModal({
                     {pendingPlayer.full_name}
                   </Text>
                   <Text style={{ fontFamily: Font.body.regular, fontSize: TextSize.sm, color: Color.fg3 }}>
-                    Te unirás a {teamName}
+                    {inviteOnly ? `Invitación a ${teamName}` : `Se unirá a ${teamName}`}
                   </Text>
                 </View>
                 <PositionBadge position={pendingPlayer.position} />
@@ -503,31 +525,34 @@ export function InvitePlayerModal({
               ))}
             </ScrollView>
 
-            {/* Búsqueda por ID — siempre visible abajo */}
+            {/* Búsqueda por username — siempre visible abajo */}
             <View style={[styles.divider, { marginVertical: 0 }]}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>O BUSCAR POR ID</Text>
+              <Text style={styles.dividerText}>O INVITAR POR USERNAME</Text>
               <View style={styles.dividerLine} />
             </View>
 
             <View style={styles.searchInput}>
+              <Text style={styles.searchAt}>@</Text>
               <TextInput
-                placeholder="Pega el ID del jugador"
+                placeholder="username del jugador"
                 placeholderTextColor={Color.fg4}
-                value={playerId}
-                onChangeText={(v) => { setPlayerId(v); setFoundPlayer(null); }}
+                value={username}
+                onChangeText={(v) => { setUsername(v); setFoundPlayer(null); }}
                 style={styles.searchInputText}
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="search"
+                onSubmitEditing={handleSearch}
               />
               {searching
                 ? <ActivityIndicator size="small" color={Color.grass500} />
                 : (
-                  <Pressable onPress={handleSearch} disabled={!playerId.trim()}>
+                  <Pressable onPress={handleSearch} disabled={!username.trim()}>
                     <Ionicons
                       name="search"
                       size={20}
-                      color={playerId.trim() ? Color.grass500 : Color.fg4}
+                      color={username.trim() ? Color.grass500 : Color.fg4}
                     />
                   </Pressable>
                 )
@@ -537,7 +562,7 @@ export function InvitePlayerModal({
             {foundPlayer && (
               <PlayerRow
                 player={foundPlayer}
-                onAdd={handleSelectPlayer}
+                onAdd={handleSelectByUsername}
                 adding={addingId === foundPlayer.id}
               />
             )}
