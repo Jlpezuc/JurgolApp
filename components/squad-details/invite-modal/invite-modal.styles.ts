@@ -16,6 +16,8 @@ export const styles = StyleSheet.create({
     paddingTop: Space.s2,
     paddingBottom: Space.s5,
     gap: Space.s4,
+    flexDirection: 'column',
+    flexShrink: 1,
   },
   handle: {
     alignSelf: 'center',

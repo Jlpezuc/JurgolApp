@@ -20,6 +20,7 @@ type KnownPlayer = {
   full_name: string;
   position: string | null;
   overall: number | null;
+  user_id: string | null;
 };
 
 type Props = {
@@ -138,6 +139,9 @@ export function InvitePlayerModal({
   const [foundPlayer, setFoundPlayer] = useState<KnownPlayer | null>(null);
   const [searching, setSearching] = useState(false);
 
+  const [pendingPlayer, setPendingPlayer] = useState<KnownPlayer | null>(null);
+  const [inviteMessage, setInviteMessage] = useState('');
+
   useEffect(() => {
     if (!visible || !currentPlayerId || !squadId) return;
 
@@ -195,7 +199,7 @@ export function InvitePlayerModal({
       // 4. Fetch full player data
       const { data: players } = await supabase
         .from('players')
-        .select('id, full_name, position, overall')
+        .select('id, full_name, position, overall, user_id')
         .in('id', candidateIds);
 
       setKnownPlayers((players as KnownPlayer[]) ?? []);
@@ -208,7 +212,23 @@ export function InvitePlayerModal({
   function handleClose() {
     setPlayerId('');
     setFoundPlayer(null);
+    setPendingPlayer(null);
+    setInviteMessage('');
     onClose();
+  }
+
+  function handleSelectPlayer(player: KnownPlayer) {
+    if (!player.user_id) {
+      addPlayerDirect(player);
+      return;
+    }
+    setInviteMessage('');
+    setPendingPlayer(player);
+  }
+
+  function handleBackFromMessage() {
+    setPendingPlayer(null);
+    setInviteMessage('');
   }
 
   async function handleSearch() {
@@ -219,7 +239,7 @@ export function InvitePlayerModal({
 
     const { data } = await supabase
       .from('players')
-      .select('id, full_name, position, overall')
+      .select('id, full_name, position, overall, user_id')
       .eq('id', trimmed)
       .single();
 
@@ -232,12 +252,12 @@ export function InvitePlayerModal({
     setFoundPlayer(data as KnownPlayer);
   }
 
-  async function addPlayer(player: KnownPlayer) {
+  async function addPlayerDirect(player: KnownPlayer) {
     setAddingId(player.id);
 
     const { error } = await supabase
       .from('team_members')
-      .insert({ team_id: squadId, player_id: player.id, role: 'player' });
+      .insert({ team_id: squadId, player_id: player.id, role: 'player', status: 'accepted' });
 
     setAddingId(null);
 
@@ -246,6 +266,34 @@ export function InvitePlayerModal({
       return;
     }
 
+    onPlayerAdded?.();
+    handleClose();
+  }
+
+  async function handleSendInvite() {
+    if (!pendingPlayer) return;
+    setAddingId(pendingPlayer.id);
+
+    const { data: member, error } = await supabase
+      .from('team_members')
+      .insert({ team_id: squadId, player_id: pendingPlayer.id, role: 'player', status: 'pending' })
+      .select('id')
+      .single();
+
+    if (error) {
+      setAddingId(null);
+      Alert.alert('Error', error.code === '23505' ? 'Este jugador ya está en el equipo.' : error.message);
+      return;
+    }
+
+    await supabase.from('notifications').insert({
+      recipient_player_id: pendingPlayer.id,
+      type: 'team_invitation',
+      message: inviteMessage.trim() || null,
+      team_member_id: member.id,
+    });
+
+    setAddingId(null);
     onPlayerAdded?.();
     handleClose();
   }
@@ -259,9 +307,141 @@ export function InvitePlayerModal({
       statusBarTranslucent
     >
       <Pressable style={styles.backdrop} onPress={handleClose}>
-        <Pressable style={[styles.sheet, { maxHeight: '85%' }]} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.sheet, { maxHeight: '92%' }]} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
 
+          {/* ── Message compose step ─────────────────────────────────────── */}
+          {pendingPlayer && (
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <Text style={styles.eyebrow}>INVITACIÓN</Text>
+                  <Text style={styles.title}>Escribe un mensaje</Text>
+                </View>
+                <Pressable style={styles.closeBtn} onPress={handleClose}>
+                  <Ionicons name="close" size={20} color={Color.fg2} />
+                </Pressable>
+              </View>
+
+              {/* Player preview */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: Space.s3,
+                backgroundColor: Color.field,
+                borderRadius: Radius.md,
+                padding: Space.s3,
+              }}>
+                <View style={{
+                  width: 40, height: 40, borderRadius: 20,
+                  backgroundColor: Color.pitch3,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Text style={{ fontFamily: Font.display.bold, fontSize: 13, color: Color.chalk }}>
+                    {pendingPlayer.full_name.slice(0, 2).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: Font.body.semibold, fontSize: TextSize.base, color: Color.fg1 }}>
+                    {pendingPlayer.full_name}
+                  </Text>
+                  <Text style={{ fontFamily: Font.body.regular, fontSize: TextSize.sm, color: Color.fg3 }}>
+                    Te unirás a {teamName}
+                  </Text>
+                </View>
+                <PositionBadge position={pendingPlayer.position} />
+              </View>
+
+              {/* Message input */}
+              <View>
+                <Text style={[styles.sectionLabel, { marginBottom: Space.s2 }]}>MENSAJE</Text>
+                <View style={{
+                  borderWidth: 1.5,
+                  borderColor: Color.grass500,
+                  borderRadius: Radius.md,
+                  backgroundColor: Color.chalk,
+                  padding: Space.s4,
+                  minHeight: 120,
+                }}>
+                  <TextInput
+                    placeholder={`Ej: ¡Hola! Te invito a unirte a ${teamName}. Sería genial tenerte en el equipo.`}
+                    placeholderTextColor={Color.fg4}
+                    value={inviteMessage}
+                    onChangeText={(v) => setInviteMessage(v.slice(0, 120))}
+                    style={{
+                      fontFamily: Font.body.regular,
+                      fontSize: TextSize.base,
+                      color: Color.fg1,
+                      lineHeight: 22,
+                      textAlignVertical: 'top',
+                    }}
+                    multiline
+                    maxLength={120}
+                    autoFocus
+                  />
+                </View>
+                <Text style={{
+                  fontFamily: Font.mono.medium,
+                  fontSize: 11,
+                  color: inviteMessage.length >= 100 ? Color.clay : Color.fg4,
+                  textAlign: 'right',
+                  marginTop: 4,
+                }}>
+                  {inviteMessage.length}/120
+                </Text>
+              </View>
+
+              {/* Actions */}
+              <View style={{ flexDirection: 'row', gap: Space.s3, marginTop: Space.s1 }}>
+                <Pressable
+                  onPress={handleBackFromMessage}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: Space.s4,
+                    borderRadius: Radius.md,
+                    borderWidth: 1.5,
+                    borderColor: Color.border2,
+                  }}
+                >
+                  <Text style={{ fontFamily: Font.body.semibold, fontSize: TextSize.base, color: Color.fg3 }}>
+                    Volver
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSendInvite}
+                  disabled={!!addingId}
+                  style={{
+                    flex: 2,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: Space.s2,
+                    paddingVertical: Space.s4,
+                    borderRadius: Radius.md,
+                    backgroundColor: Color.pitch,
+                    opacity: addingId ? 0.6 : 1,
+                  }}
+                >
+                  {addingId
+                    ? <ActivityIndicator size="small" color={Color.chalk} />
+                    : <>
+                        <Ionicons name="mail" size={16} color={Color.chalk} />
+                        <Text style={{ fontFamily: Font.body.semibold, fontSize: TextSize.base, color: Color.chalk }}>
+                          Enviar invitación
+                        </Text>
+                      </>
+                  }
+                </Pressable>
+              </View>
+            </>
+          )}
+
+          {/* ── Player list step ─────────────────────────────────────────── */}
+          {!pendingPlayer && <>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -288,48 +468,48 @@ export function InvitePlayerModal({
             </Text>
           </View>
 
-          {/* Known players */}
-          <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>JUGADORES EN COMÚN</Text>
+          {/* Flex area: jugadores scrollables + búsqueda fija abajo */}
+          <View style={{ flex: 1, gap: Space.s3 }}>
+            <Text style={styles.sectionLabel}>JUGADORES EN COMÚN</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
+            {/* Lista scrollable — solo los jugadores */}
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {loadingKnown && (
+                <ActivityIndicator color={Color.grass500} style={{ marginTop: Space.s4 }} />
+              )}
 
-            {loadingKnown && (
-              <ActivityIndicator color={Color.grass500} style={{ marginTop: Space.s4 }} />
-            )}
+              {!loadingKnown && knownPlayers.length === 0 && (
+                <Text style={{
+                  fontFamily: Font.body.regular,
+                  fontSize: TextSize.sm,
+                  color: Color.fg4,
+                  marginTop: Space.s2,
+                }}>
+                  No tienes jugadores en común con otros equipos.
+                </Text>
+              )}
 
-            {!loadingKnown && knownPlayers.length === 0 && (
-              <Text style={{
-                fontFamily: Font.body.regular,
-                fontSize: TextSize.sm,
-                color: Color.fg4,
-                marginTop: Space.s3,
-                marginBottom: Space.s2,
-              }}>
-                No tienes jugadores en común con otros equipos.
-              </Text>
-            )}
+              {knownPlayers.map((p, i) => (
+                <View key={p.id}>
+                  <PlayerRow
+                    player={p}
+                    onAdd={handleSelectPlayer}
+                    adding={addingId === p.id}
+                  />
+                  {i < knownPlayers.length - 1 && (
+                    <View style={{ height: 1, backgroundColor: Color.border1 }} />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
 
-            {knownPlayers.map((p, i) => (
-              <View key={p.id}>
-                <PlayerRow
-                  player={p}
-                  onAdd={addPlayer}
-                  adding={addingId === p.id}
-                />
-                {i < knownPlayers.length - 1 && (
-                  <View style={{ height: 1, backgroundColor: Color.border1 }} />
-                )}
-              </View>
-            ))}
-
-            {/* Divider */}
-            <View style={[styles.divider, { marginVertical: Space.s4 }]}>
+            {/* Búsqueda por ID — siempre visible abajo */}
+            <View style={[styles.divider, { marginVertical: 0 }]}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>O BUSCAR POR ID</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            {/* ID search */}
             <View style={styles.searchInput}>
               <TextInput
                 placeholder="Pega el ID del jugador"
@@ -354,19 +534,15 @@ export function InvitePlayerModal({
               }
             </View>
 
-            {/* Found player via ID */}
             {foundPlayer && (
-              <View style={{ marginTop: Space.s3 }}>
-                <PlayerRow
-                  player={foundPlayer}
-                  onAdd={addPlayer}
-                  adding={addingId === foundPlayer.id}
-                />
-              </View>
+              <PlayerRow
+                player={foundPlayer}
+                onAdd={handleSelectPlayer}
+                adding={addingId === foundPlayer.id}
+              />
             )}
-
-            <View style={{ height: Space.s5 }} />
-          </ScrollView>
+          </View>
+          </>}
         </Pressable>
       </Pressable>
     </Modal>

@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Color } from '@/constants/design';
 import {
@@ -47,9 +48,24 @@ function getInitials(firstName: string, lastName: string) {
   return (firstName[0] + lastName[0]).toUpperCase();
 }
 
-function PlayerRowItem({ player, isLast }: { player: SquadPlayer; isLast: boolean }) {
+function PlayerRowItem({
+  player,
+  isLast,
+  selected,
+  onSelect,
+  onRemove,
+}: {
+  player: SquadPlayer;
+  isLast: boolean;
+  selected: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+}) {
   return (
-    <View style={[styles.playerRow, isLast && styles.playerRowLast]}>
+    <Pressable
+      style={[styles.playerRow, isLast && styles.playerRowLast]}
+      onPress={onSelect}
+    >
       <View style={[styles.playerAvatar, player.isCaptain && styles.playerAvatarCaptain]}>
         <Text style={[styles.playerAvatarText, player.isCaptain && styles.playerAvatarTextCaptain]}>
           {getInitials(player.firstName, player.lastName)}
@@ -64,21 +80,40 @@ function PlayerRowItem({ player, isLast }: { player: SquadPlayer; isLast: boolea
           {player.isCaptain && <Text style={styles.captainIcon}>👑</Text>}
         </View>
 
-        <View style={styles.playerMeta}>
-          <View style={[styles.positionBadge, { backgroundColor: POSITION_BADGE_COLOR[player.position] }]}>
-            <Text style={styles.positionBadgeText}>{player.position}</Text>
+        {!selected && (
+          <View style={styles.playerMeta}>
+            <View style={[styles.positionBadge, { backgroundColor: POSITION_BADGE_COLOR[player.position] }]}>
+              <Text style={styles.positionBadgeText}>{player.position}</Text>
+            </View>
+            <Text style={styles.playerNumber}>#{player.number}</Text>
+            <View style={[styles.attendanceDot, { backgroundColor: ATTENDANCE_DOT_COLOR[player.attendance] }]} />
+            <Text style={styles.attendanceLabel}>{player.attendance}</Text>
           </View>
-          <Text style={styles.playerNumber}>#{player.number}</Text>
-          <View style={[styles.attendanceDot, { backgroundColor: ATTENDANCE_DOT_COLOR[player.attendance] }]} />
-          <Text style={styles.attendanceLabel}>{player.attendance}</Text>
-        </View>
+        )}
       </View>
 
-      <View style={styles.playerOvr}>
-        <Text style={styles.ovrValue}>{player.overall}</Text>
-        <Text style={styles.ovrLabel}>OVR</Text>
-      </View>
-    </View>
+      {selected ? (
+        <Pressable
+          onPress={onRemove}
+          hitSlop={8}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: Color.clay + '18',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="trash-outline" size={18} color={Color.clay} />
+        </Pressable>
+      ) : (
+        <View style={styles.playerOvr}>
+          <Text style={styles.ovrValue}>{player.overall}</Text>
+          <Text style={styles.ovrLabel}>OVR</Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -128,7 +163,15 @@ function AttendanceCard({ players }: { players: SquadPlayer[] }) {
   );
 }
 
-function RosterByPosition({ players }: { players: SquadPlayer[] }) {
+function RosterByPosition({
+  players,
+  onRemovePlayer,
+}: {
+  players: SquadPlayer[];
+  onRemovePlayer?: (playerId: string) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
   const grouped = POSITION_ORDER.reduce<Record<PlayerPosition, SquadPlayer[]>>(
     (acc, pos) => {
       acc[pos] = players.filter((p) => p.position === pos);
@@ -139,8 +182,26 @@ function RosterByPosition({ players }: { players: SquadPlayer[] }) {
 
   const activePositions = POSITION_ORDER.filter((pos) => grouped[pos].length > 0);
 
+  function handleRemove(player: SquadPlayer) {
+    Alert.alert(
+      'Eliminar jugador',
+      `¿Eliminar a ${player.firstName} ${player.lastName} del equipo?${player.userId ? '\nSe le notificará.' : ''}`,
+      [
+        { text: 'Cancelar', style: 'cancel', onPress: () => setSelectedId(null) },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            setSelectedId(null);
+            onRemovePlayer?.(player.id);
+          },
+        },
+      ],
+    );
+  }
+
   return (
-    <View style={styles.rosterCard}>
+    <Pressable style={styles.rosterCard} onPress={() => setSelectedId(null)}>
       {activePositions.map((pos, posIndex) => {
         const isLastPosition = posIndex === activePositions.length - 1;
         return (
@@ -156,19 +217,22 @@ function RosterByPosition({ players }: { players: SquadPlayer[] }) {
                   key={`${player.id}-${i}`}
                   player={player}
                   isLast={isLastPosition && isLastPlayer}
+                  selected={selectedId === player.id}
+                  onSelect={() => setSelectedId(selectedId === player.id ? null : player.id)}
+                  onRemove={() => handleRemove(player)}
                 />
               );
             })}
           </View>
         );
       })}
-    </View>
+    </Pressable>
   );
 }
 
 // ── Tab views ────────────────────────────────────────────────────────────────
 
-function PlantillaTab({ detail }: { detail: SquadDetail }) {
+function PlantillaTab({ detail, onRemovePlayer }: { detail: SquadDetail; onRemovePlayer?: (id: string) => void }) {
   return (
     <>
       <AttendanceCard players={detail.players} />
@@ -180,7 +244,7 @@ function PlantillaTab({ detail }: { detail: SquadDetail }) {
       >
         <Text style={styles.inviteButtonText}>+ Invitar jugador</Text>
       </Pressable>
-      <RosterByPosition players={detail.players} />
+      <RosterByPosition players={detail.players} onRemovePlayer={onRemovePlayer} />
     </>
   );
 }
@@ -205,7 +269,7 @@ const TABS: { key: TabKey; label: string; count: (d: SquadDetail) => number }[] 
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function SquadLineup({ detail }: { detail: SquadDetail }) {
+export function SquadLineup({ detail, onRemovePlayer }: { detail: SquadDetail; onRemovePlayer?: (id: string) => void }) {
   const [activeTab, setActiveTab] = useState<TabKey>('plantilla');
 
   return (
@@ -233,7 +297,7 @@ export function SquadLineup({ detail }: { detail: SquadDetail }) {
         })}
       </View>
 
-      {activeTab === 'plantilla' && <PlantillaTab detail={detail} />}
+      {activeTab === 'plantilla' && <PlantillaTab detail={detail} onRemovePlayer={onRemovePlayer} />}
       {activeTab === 'proximos'  && <EmptyTab label="Próximos partidos" />}
       {activeTab === 'historial' && <EmptyTab label="Historial" />}
     </>

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SquadLineup } from '@/components/squad-details/squad-lineup/squad-lineup';
@@ -30,6 +30,7 @@ type MemberRow = {
     full_name: string;
     position: string | null;
     overall: number | null;
+    user_id: string | null;
   };
 };
 
@@ -71,7 +72,7 @@ export default function SquadDetailScreen() {
         supabase.from('teams').select('*').eq('id', id).single(),
         supabase
           .from('team_members')
-          .select('player_id, role, jersey_number, players(id, full_name, position, overall)')
+          .select('player_id, role, jersey_number, players(id, full_name, position, overall, user_id)')
           .eq('team_id', id),
         supabase
           .from('matches')
@@ -80,7 +81,7 @@ export default function SquadDetailScreen() {
           .order('date', { ascending: false }),
       ]);
       setTeam(teamData ?? null);
-      setMembers((memberData as MemberRow[]) ?? []);
+      setMembers((memberData as unknown as MemberRow[]) ?? []);
       setMatches((matchData as MatchRow[]) ?? []);
       setLoading(false);
     }
@@ -101,6 +102,32 @@ export default function SquadDetailScreen() {
         <Text style={{ color: Color.fg2, padding: 20 }}>Equipo no encontrado.</Text>
       </View>
     );
+  }
+
+  async function handleRemovePlayer(playerId: string) {
+    const member = members.find((m) => m.player_id === playerId);
+    const userId = member?.players?.user_id ?? null;
+
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', id)
+      .eq('player_id', playerId);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    if (userId) {
+      await supabase.from('notifications').insert({
+        recipient_player_id: playerId,
+        type: 'player_removed',
+        message: `Has sido eliminado del equipo ${team!.name}.`,
+      });
+    }
+
+    setMembers((prev) => prev.filter((m) => m.player_id !== playerId));
   }
 
   const isCaptain = team.created_by === currentPlayer?.id;
@@ -141,6 +168,7 @@ export default function SquadDetailScreen() {
         overall: m.players?.overall ?? 0,
         attendance: ATTENDANCE_MAP[attendanceMap[m.player_id] ?? 'maybe'] ?? AttendanceStatus.Maybe,
         isCaptain: m.player_id === team.created_by,
+        userId: m.players?.user_id ?? null,
       };
     }),
   };
@@ -255,7 +283,7 @@ export default function SquadDetailScreen() {
             </View>
           </View>
 
-          <SquadLineup detail={squadDetail} />
+          <SquadLineup detail={squadDetail} onRemovePlayer={handleRemovePlayer} />
         </View>
       </ScrollView>
     </View>
