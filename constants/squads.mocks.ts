@@ -2,13 +2,6 @@ import { Squad } from "@/components/squad-card";
 
 // ── Squad detail types ────────────────────────────────────────────────────────
 
-export enum PlayerPosition {
-  PO  = 'PO',
-  DEF = 'DEF',
-  MC  = 'MC',
-  DEL = 'DEL',
-}
-
 export enum AttendanceStatus {
   Going    = 'going',
   Maybe    = 'maybe',
@@ -20,7 +13,6 @@ export interface SquadPlayer {
   firstName: string;
   lastName: string;
   number: number;
-  position: PlayerPosition;
   overall: number;
   attendance: AttendanceStatus;
   isCaptain?: boolean;
@@ -39,11 +31,11 @@ export const SQUAD_DETAIL_MOCK: SquadDetail = {
   squadId: '1',
   nextMatchDate: '2026-05-31',
   players: [
-    { id: 'p0',  firstName: 'Filip',   lastName: 'Prudant', number: 1, position: PlayerPosition.PO,  overall: 50, attendance: AttendanceStatus.Maybe, userId: null, hasAccount: false, status: 'accepted' },
-    { id: 'p5',  firstName: 'Seba',    lastName: 'Araya',   number: 2, position: PlayerPosition.DEF, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
-    { id: 'p2',  firstName: 'Jose',    lastName: 'Guerra',  number: 3, position: PlayerPosition.DEF, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
-    { id: 'p3',  firstName: 'Jacob',   lastName: 'Guerra',  number: 3, position: PlayerPosition.DEF, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
-    { id: 'p1',  firstName: 'Joaquín', lastName: 'Lopez',   number: 9, position: PlayerPosition.DEL, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
+    { id: 'p0',  firstName: 'Filip',   lastName: 'Prudant', number: 1, overall: 50, attendance: AttendanceStatus.Maybe, userId: null, hasAccount: false, status: 'accepted' },
+    { id: 'p5',  firstName: 'Seba',    lastName: 'Araya',   number: 2, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
+    { id: 'p2',  firstName: 'Jose',    lastName: 'Guerra',  number: 3, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
+    { id: 'p3',  firstName: 'Jacob',   lastName: 'Guerra',  number: 3, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
+    { id: 'p1',  firstName: 'Joaquín', lastName: 'Lopez',   number: 9, overall: 50, attendance: AttendanceStatus.Going, userId: null, hasAccount: false, status: 'accepted' },
   ],
 };
 

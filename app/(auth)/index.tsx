@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,10 +14,8 @@ import {
 } from 'react-native';
 
 export default function AuthScreen() {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
@@ -26,45 +25,13 @@ export default function AuthScreen() {
     setLoading(false);
   }
 
-  async function handleSignup() {
-    if (!fullName.trim()) {
-      Alert.alert('Error', 'El nombre completo es requerido');
-      return;
-    }
-    setLoading(true);
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-
-    if (error) {
-      Alert.alert('Error', error.message);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(false);
-  }
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.form}>
-        <Text style={styles.title}>{mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}</Text>
-
-        {mode === 'signup' && (
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre completo"
-            value={fullName}
-            onChangeText={setFullName}
-            autoCapitalize="words"
-          />
-        )}
+        <Text style={styles.title}>Iniciar sesión</Text>
 
         <TextInput
           style={styles.input}
@@ -83,26 +50,16 @@ export default function AuthScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={mode === 'login' ? handleLogin : handleSignup}
-          disabled={loading}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>
-              {mode === 'login' ? 'Entrar' : 'Registrarme'}
-            </Text>
+            <Text style={styles.buttonText}>Entrar</Text>
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
-          <Text style={styles.switchText}>
-            {mode === 'login'
-              ? '¿No tienes cuenta? Crear cuenta'
-              : '¿Ya tienes cuenta? Iniciar sesión'}
-          </Text>
+        <TouchableOpacity onPress={() => router.push('/signup')}>
+          <Text style={styles.switchText}>¿No tienes cuenta? Crear cuenta</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

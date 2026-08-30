@@ -9,30 +9,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { InvitePlayerModal } from '@/components/squad-details/invite-modal/invite-modal';
 import { Color, Space } from '@/constants/design';
-import { PlayerPosition } from '@/constants/squads.mocks';
 import { usePlayer } from '@/hooks/usePlayer';
 import { supabase } from '@/lib/supabase';
 import { styles } from './add-player.styles';
-
-// ── Position config ──────────────────────────────────────────────────────────
-
-const POSITIONS: { key: PlayerPosition; short: string; label: string }[] = [
-  { key: PlayerPosition.PO,  short: 'PO',  label: 'Arquero' },
-  { key: PlayerPosition.DEF, short: 'DEF', label: 'Defensa' },
-  { key: PlayerPosition.MC,  short: 'MC',  label: 'Mediocampo' },
-  { key: PlayerPosition.DEL, short: 'DEL', label: 'Delantero' },
-];
 
 // ── Card preview ─────────────────────────────────────────────────────────────
 
 type CardProps = {
   name: string;
   imageUri: string | null;
-  position: PlayerPosition;
   onPressPhoto: () => void;
 };
 
-function PlayerCard({ name, imageUri, position, onPressPhoto }: CardProps) {
+function PlayerCard({ name, imageUri, onPressPhoto }: CardProps) {
   const displayName = name.trim().toUpperCase();
 
   return (
@@ -42,7 +31,6 @@ function PlayerCard({ name, imageUri, position, onPressPhoto }: CardProps) {
       <View style={styles.cardTopRow}>
         <View>
           <Text style={styles.cardRating}>50</Text>
-          <Text style={styles.cardRatingLabel}>{position}</Text>
         </View>
       </View>
 
@@ -80,7 +68,6 @@ export default function AddPlayerScreen() {
   const [teamName, setTeamName] = useState('');
   const [memberCount, setMemberCount] = useState(0);
   const [name, setName] = useState('');
-  const [position, setPosition] = useState<PlayerPosition>(PlayerPosition.MC);
   const [number, setNumber] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -113,7 +100,7 @@ export default function AddPlayerScreen() {
 
     const { data: player, error } = await supabase
       .from('players')
-      .insert({ full_name: name.trim(), position, overall: 50 })
+      .insert({ full_name: name.trim(), overall: 50 })
       .select('id')
       .single();
 
@@ -181,7 +168,6 @@ export default function AddPlayerScreen() {
           <PlayerCard
             name={name}
             imageUri={imageUri}
-            position={position}
             onPressPhoto={pickImage}
           />
           <Text style={styles.cardHint}>Toca la tarjeta para subir la foto</Text>
@@ -203,27 +189,6 @@ export default function AddPlayerScreen() {
                 autoCapitalize="words"
                 returnKeyType="next"
               />
-            </View>
-
-            <Text style={styles.fieldLabel}>Posición</Text>
-            <View style={styles.positionRow}>
-              {POSITIONS.map((p) => {
-                const isActive = position === p.key;
-                return (
-                  <Pressable
-                    key={p.key}
-                    style={[styles.positionBtn, isActive && styles.positionBtnActive]}
-                    onPress={() => setPosition(p.key)}
-                  >
-                    <Text style={[styles.positionShort, isActive && styles.positionShortActive]}>
-                      {p.short}
-                    </Text>
-                    <Text style={[styles.positionLabel, isActive && styles.positionLabelActive]}>
-                      {p.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
             </View>
 
             <Text style={styles.fieldLabel}>

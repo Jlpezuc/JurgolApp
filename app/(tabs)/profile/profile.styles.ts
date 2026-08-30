@@ -79,11 +79,6 @@ export const styles = StyleSheet.create({
     fontSize: TextSize.md,
     color: Color.fg1,
   },
-  playerRole: {
-    fontFamily: Font.body.regular,
-    fontSize: TextSize.sm,
-    color: Color.fg4,
-  },
   card: {
     backgroundColor: Color.chalk,
     borderRadius: Radius.lg,
@@ -114,6 +109,23 @@ export const styles = StyleSheet.create({
     fontFamily: Font.display.bold,
     fontSize: 18,
     color: Color.fg1,
+  },
+  statValueSmall: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.sm,
+    color: Color.fg1,
+  },
+  editLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  editLinkText: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.sm,
+    color: Color.grass600,
   },
   btnSecondary: {
     backgroundColor: Color.chalk,

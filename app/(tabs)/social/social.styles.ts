@@ -48,6 +48,15 @@ export const styles = StyleSheet.create({
     fontSize: TextSize.sm,
     color: Color.fg4,
   },
+  emptyCard: {
+    backgroundColor: Color.chalk,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Color.border1,
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 8,
+  },
   cardActions: {
     flexDirection: 'row',
     gap: 8,

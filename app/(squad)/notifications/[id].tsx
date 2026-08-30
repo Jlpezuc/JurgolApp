@@ -54,13 +54,10 @@ export default function InvitationDetailScreen() {
     if (!notif?.team_member_id) return;
     setSubmitting(accept ? 'accept' : 'reject');
 
-    const { error } = await supabase
-      .from('team_members')
-      .update({
-        status: accept ? 'accepted' : 'rejected',
-        responded_at: new Date().toISOString(),
-      })
-      .eq('id', notif.team_member_id);
+    const { error } = await supabase.rpc('respond_to_invitation', {
+      p_team_member_id: notif.team_member_id,
+      p_accept: accept,
+    });
 
     setSubmitting(null);
 

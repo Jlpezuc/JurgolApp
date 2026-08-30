@@ -1,12 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { styles } from './profile.styles';
 import { Color } from '@/constants/design';
 import { usePlayer } from '@/hooks/usePlayer';
+import { useSession } from '@/hooks/useSession';
 import { useNotifications } from '@/hooks/useNotifications';
+import { usePlayerMatchStats } from '@/hooks/usePlayerMatchStats';
+import { PlayerQrCodeModal } from '@/components/qr/player-qr-code';
 
 function getInitials(name: string) {
   return name
@@ -19,11 +23,13 @@ function getInitials(name: string) {
 
 export default function ProfileScreen() {
   const { player } = usePlayer();
+  const { session } = useSession();
   const { unreadCount } = useNotifications();
+  const { stats } = usePlayerMatchStats();
+  const [qrOpen, setQrOpen] = useState(false);
 
   const displayName = player?.full_name ?? '—';
   const initials = player?.full_name ? getInitials(player.full_name) : '?';
-  const position = player?.position ?? '';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,33 +55,61 @@ export default function ProfileScreen() {
             <Text style={styles.avatarInitials}>{initials}</Text>
           </View>
           <Text style={styles.playerName}>{displayName}</Text>
-          <Text style={styles.playerRole}>{position}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Información</Text>
+          <View style={styles.statRow}>
+            <Text style={styles.statName}>Username</Text>
+            <Text style={styles.statValueSmall}>{player?.username ? `@${player.username}` : '—'}</Text>
+          </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statName}>Correo</Text>
+            <Text style={styles.statValueSmall}>{session?.user.email ?? '—'}</Text>
+          </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statName}>Teléfono</Text>
+            <Text style={styles.statValueSmall}>{player?.phone ?? '—'}</Text>
+          </View>
+          <TouchableOpacity style={styles.editLink} onPress={() => router.push('/edit-profile')}>
+            <Ionicons name="create-outline" size={16} color={Color.grass600} />
+            <Text style={styles.editLinkText}>Editar perfil</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Estadísticas de carrera</Text>
           <View style={styles.statRow}>
             <Text style={styles.statName}>Partidos Jugados</Text>
-            <Text style={styles.statValue}>24</Text>
+            <Text style={styles.statValue}>{stats.played}</Text>
           </View>
           <View style={styles.statRow}>
-            <Text style={styles.statName}>Goles Anotados</Text>
-            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statName}>Veces MVP</Text>
+            <Text style={styles.statValue}>{stats.mvps}</Text>
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statName}>% de Victorias</Text>
-            <Text style={styles.statValue}>67%</Text>
+            <Text style={styles.statValue}>{stats.winRate !== null ? `${stats.winRate}%` : '—'}</Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.btnSecondary}>
-          <Text style={styles.btnSecondaryText}>Editar perfil</Text>
+        <TouchableOpacity style={styles.btnSecondary} onPress={() => setQrOpen(true)}>
+          <Text style={styles.btnSecondaryText}>Mi código QR</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btnLogout} onPress={() => supabase.auth.signOut()}>
           <Text style={styles.btnLogoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {player && (
+        <PlayerQrCodeModal
+          visible={qrOpen}
+          onClose={() => setQrOpen(false)}
+          playerId={player.id}
+          playerName={player.full_name}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -141,40 +141,6 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  // Modality
-  modalityRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  modalityBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    backgroundColor: Color.field,
-    gap: 2,
-  },
-  modalityBtnActive: {
-    backgroundColor: Color.pitch,
-  },
-  modalityLabel: {
-    fontFamily: Font.display.bold,
-    fontSize: TextSize.md,
-    color: Color.fg1,
-  },
-  modalityLabelActive: {
-    color: Color.chalk,
-  },
-  modalitySub: {
-    fontFamily: Font.mono.medium,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: Color.fg4,
-    textTransform: 'uppercase',
-  },
-  modalitySubActive: {
-    color: Color.fg3,
-  },
   // Create button
   createBtn: {
     backgroundColor: Color.pitch,

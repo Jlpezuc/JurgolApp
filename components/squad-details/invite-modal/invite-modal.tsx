@@ -13,12 +13,12 @@ import {
 
 import { Color, Font, Radius, Space, TextSize } from '@/constants/design';
 import { supabase } from '@/lib/supabase';
+import { QrScannerSheet } from '@/components/qr/qr-scanner-sheet';
 import { styles } from './invite-modal.styles';
 
 type KnownPlayer = {
   id: string;
   full_name: string;
-  position: string | null;
   overall: number | null;
   user_id: string | null;
 };
@@ -34,23 +34,6 @@ type Props = {
   currentPlayerId: string;
   onPlayerAdded?: () => void;
 };
-
-function PositionBadge({ position }: { position: string | null }) {
-  const COLOR: Record<string, string> = {
-    PO: '#6B7280', DEF: Color.sky, MC: '#0E9E8A', DEL: Color.clay,
-  };
-  const pos = position ?? 'MC';
-  return (
-    <View style={{
-      backgroundColor: COLOR[pos] ?? Color.fg4,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
-    }}>
-      <Text style={{ fontFamily: Font.mono.bold, fontSize: 10, color: '#fff' }}>{pos}</Text>
-    </View>
-  );
-}
 
 function PlayerRow({
   player,
@@ -83,14 +66,11 @@ function PlayerRow({
         <Text style={{ fontFamily: Font.body.semibold, fontSize: TextSize.base, color: Color.fg1 }}>
           {player.full_name}
         </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <PositionBadge position={player.position} />
-          {player.overall != null && (
-            <Text style={{ fontFamily: Font.mono.medium, fontSize: 11, color: Color.fg3 }}>
-              OVR {player.overall}
-            </Text>
-          )}
-        </View>
+        {player.overall != null && (
+          <Text style={{ fontFamily: Font.mono.medium, fontSize: 11, color: Color.fg3 }}>
+            OVR {player.overall}
+          </Text>
+        )}
       </View>
 
       <Pressable
@@ -142,6 +122,7 @@ export function InvitePlayerModal({
   const [pendingPlayer, setPendingPlayer] = useState<KnownPlayer | null>(null);
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteOnly, setInviteOnly] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     if (!visible || !currentPlayerId || !squadId) return;
@@ -200,7 +181,7 @@ export function InvitePlayerModal({
       // 4. Fetch full player data
       const { data: players } = await supabase
         .from('players')
-        .select('id, full_name, position, overall, user_id')
+        .select('id, full_name, overall, user_id')
         .in('id', candidateIds);
 
       setKnownPlayers((players as KnownPlayer[]) ?? []);
@@ -249,7 +230,7 @@ export function InvitePlayerModal({
 
     const { data } = await supabase
       .from('players')
-      .select('id, full_name, position, overall, user_id')
+      .select('id, full_name, overall, user_id')
       .ilike('username', trimmed)
       .single();
 
@@ -262,12 +243,29 @@ export function InvitePlayerModal({
     setFoundPlayer(data as KnownPlayer);
   }
 
+  async function handleScanned(playerId: string) {
+    setScannerOpen(false);
+    const { data } = await supabase
+      .from('players')
+      .select('id, full_name, overall, user_id')
+      .eq('id', playerId)
+      .single();
+
+    if (!data) {
+      Alert.alert('No encontrado', 'Ese código QR no corresponde a ningún jugador.');
+      return;
+    }
+    handleSelectByUsername(data as KnownPlayer);
+  }
+
   async function addPlayerDirect(player: KnownPlayer) {
     setAddingId(player.id);
 
-    const { error } = await supabase
-      .from('team_members')
-      .insert({ team_id: squadId, player_id: player.id, role: 'player', status: 'accepted' });
+    const { error } = await supabase.rpc('invite_player', {
+      p_team_id: squadId,
+      p_player_id: player.id,
+      p_role: 'player',
+    });
 
     setAddingId(null);
 
@@ -284,38 +282,20 @@ export function InvitePlayerModal({
     if (!pendingPlayer) return;
     setAddingId(pendingPlayer.id);
 
-    if (inviteOnly) {
-      await supabase.from('notifications').insert({
-        recipient_player_id: pendingPlayer.id,
-        type: 'team_invitation',
-        message: inviteMessage.trim() || null,
-        team_member_id: null,
-      });
-      setAddingId(null);
-      handleClose();
-      return;
-    }
+    const { error } = await supabase.rpc('invite_player', {
+      p_team_id: squadId,
+      p_player_id: pendingPlayer.id,
+      p_role: 'player',
+      p_message: inviteMessage.trim() || null,
+    });
 
-    const { data: member, error } = await supabase
-      .from('team_members')
-      .insert({ team_id: squadId, player_id: pendingPlayer.id, role: 'player', status: 'pending' })
-      .select('id')
-      .single();
+    setAddingId(null);
 
     if (error) {
-      setAddingId(null);
       Alert.alert('Error', error.code === '23505' ? 'Este jugador ya está en el equipo.' : error.message);
       return;
     }
 
-    await supabase.from('notifications').insert({
-      recipient_player_id: pendingPlayer.id,
-      type: 'team_invitation',
-      message: inviteMessage.trim() || null,
-      team_member_id: member.id,
-    });
-
-    setAddingId(null);
     onPlayerAdded?.();
     handleClose();
   }
@@ -372,7 +352,6 @@ export function InvitePlayerModal({
                     {inviteOnly ? `Invitación a ${teamName}` : `Se unirá a ${teamName}`}
                   </Text>
                 </View>
-                <PositionBadge position={pendingPlayer.position} />
               </View>
 
               {/* Message input */}
@@ -532,31 +511,42 @@ export function InvitePlayerModal({
               <View style={styles.dividerLine} />
             </View>
 
-            <View style={styles.searchInput}>
-              <Text style={styles.searchAt}>@</Text>
-              <TextInput
-                placeholder="username del jugador"
-                placeholderTextColor={Color.fg4}
-                value={username}
-                onChangeText={(v) => { setUsername(v); setFoundPlayer(null); }}
-                style={styles.searchInputText}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                onSubmitEditing={handleSearch}
-              />
-              {searching
-                ? <ActivityIndicator size="small" color={Color.grass500} />
-                : (
-                  <Pressable onPress={handleSearch} disabled={!username.trim()}>
-                    <Ionicons
-                      name="search"
-                      size={20}
-                      color={username.trim() ? Color.grass500 : Color.fg4}
-                    />
-                  </Pressable>
-                )
-              }
+            <View style={{ flexDirection: 'row', gap: Space.s2, alignItems: 'center' }}>
+              <View style={[styles.searchInput, { flex: 1 }]}>
+                <Text style={styles.searchAt}>@</Text>
+                <TextInput
+                  placeholder="username del jugador"
+                  placeholderTextColor={Color.fg4}
+                  value={username}
+                  onChangeText={(v) => { setUsername(v); setFoundPlayer(null); }}
+                  style={styles.searchInputText}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  onSubmitEditing={handleSearch}
+                />
+                {searching
+                  ? <ActivityIndicator size="small" color={Color.grass500} />
+                  : (
+                    <Pressable onPress={handleSearch} disabled={!username.trim()}>
+                      <Ionicons
+                        name="search"
+                        size={20}
+                        color={username.trim() ? Color.grass500 : Color.fg4}
+                      />
+                    </Pressable>
+                  )
+                }
+              </View>
+              <Pressable
+                onPress={() => setScannerOpen(true)}
+                style={{
+                  width: 48, height: 48, borderRadius: Radius.md,
+                  backgroundColor: Color.pitch, alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="qr-code-outline" size={20} color={Color.chalk} />
+              </Pressable>
             </View>
 
             {foundPlayer && (
@@ -570,6 +560,12 @@ export function InvitePlayerModal({
           </>}
         </Pressable>
       </Pressable>
+
+      <QrScannerSheet
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanned={handleScanned}
+      />
     </Modal>
   );
 }

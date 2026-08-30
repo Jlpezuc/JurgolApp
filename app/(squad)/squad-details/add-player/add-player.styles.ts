@@ -113,13 +113,6 @@ export const styles = StyleSheet.create({
     color: Color.chalk,
     letterSpacing: -1,
   },
-  cardRatingLabel: {
-    fontFamily: Font.mono.bold,
-    fontSize: TextSize.xs,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: 1.2,
-    marginTop: 2,
-  },
   cardTeamBadge: {
     minWidth: 38,
     paddingHorizontal: 6,
@@ -281,46 +274,6 @@ export const styles = StyleSheet.create({
     fontSize: TextSize.base,
     color: Color.fg1,
     padding: 0,
-  },
-
-  // ── Position selector ──────────────────────────────────────────────────────
-  positionRow: {
-    flexDirection: 'row',
-    gap: Space.s2,
-    marginTop: Space.s2,
-  },
-  positionBtn: {
-    flex: 1,
-    backgroundColor: Color.chalk,
-    borderWidth: 1,
-    borderColor: Color.border2,
-    borderRadius: Radius.md,
-    paddingVertical: Space.s2 + 2,
-    paddingHorizontal: Space.s1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  positionBtnActive: {
-    backgroundColor: Color.pitch,
-    borderColor: Color.pitch,
-  },
-  positionShort: {
-    fontFamily: Font.display.bold,
-    fontSize: TextSize.base,
-    color: Color.fg1,
-  },
-  positionShortActive: {
-    color: Color.chalk,
-  },
-  positionLabel: {
-    fontFamily: Font.mono.medium,
-    fontSize: 9,
-    color: Color.fg3,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  positionLabelActive: {
-    color: 'rgba(255,255,255,0.7)',
   },
 
   // ── Save button ────────────────────────────────────────────────────────────

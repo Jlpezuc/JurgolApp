@@ -1,0 +1,117 @@
+import { StyleSheet } from 'react-native';
+import { Color, Font, Radius, Space, TextSize } from '@/constants/design';
+
+export const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(11,31,20,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: Color.chalk,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: Space.s5,
+    paddingTop: Space.s2,
+    paddingBottom: Space.s5,
+    gap: Space.s4,
+    minHeight: '72%',
+    maxHeight: '92%',
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Color.border2,
+    marginBottom: Space.s2,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  eyebrow: {
+    fontFamily: Font.mono.medium,
+    fontSize: 10,
+    color: Color.fg3,
+    letterSpacing: 1.5,
+  },
+  title: {
+    fontFamily: Font.display.bold,
+    fontSize: TextSize.xl,
+    color: Color.fg1,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    backgroundColor: Color.field2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabel: {
+    fontFamily: Font.mono.medium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: Color.fg3,
+    marginBottom: Space.s2,
+  },
+  input: {
+    borderWidth: 1.5,
+    borderColor: Color.border2,
+    borderRadius: Radius.md,
+    padding: Space.s4,
+    minHeight: 80,
+    fontFamily: Font.body.regular,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+    textAlignVertical: 'top',
+  },
+  destRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectAll: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.xs,
+    color: Color.grass600,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.s3,
+    paddingVertical: Space.s2 + 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Color.border3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: Color.grass500,
+    borderColor: Color.grass500,
+  },
+  memberName: {
+    fontFamily: Font.body.medium,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+  },
+  sendBtn: {
+    backgroundColor: Color.pitch,
+    borderRadius: Radius.md,
+    paddingVertical: Space.s4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtnText: {
+    fontFamily: Font.body.bold,
+    fontSize: TextSize.base,
+    color: Color.chalk,
+  },
+});

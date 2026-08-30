@@ -1,9 +1,10 @@
 import { SquadCard, Squad } from '@/components/squad-card';
 import { usePlayer } from '@/hooks/usePlayer';
+import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './squads.styles';
 
@@ -17,7 +18,17 @@ type TeamRow = {
   member_count: number;
 };
 
-function teamToSquad(team: TeamRow, playerId: string): Squad {
+type TeamStats = {
+  played: number;
+  drawn: number;
+  lost: number;
+  winRate: number;
+  recentForm: ('W' | 'D' | 'L')[];
+};
+
+const EMPTY_STATS: TeamStats = { played: 0, drawn: 0, lost: 0, winRate: 0, recentForm: [] };
+
+function teamToSquad(team: TeamRow, playerId: string, stats: TeamStats): Squad {
   return {
     id: team.id,
     name: team.name,
@@ -26,18 +37,24 @@ function teamToSquad(team: TeamRow, playerId: string): Squad {
     captainName: '',
     createdYear: new Date(team.created_at).getFullYear(),
     color: '#1A7A3C',
-    played: 0,
-    drawn: 0,
-    lost: 0,
-    winRate: 0,
-    recentForm: [],
+    played: stats.played,
+    drawn: stats.drawn,
+    lost: stats.lost,
+    winRate: stats.winRate,
+    recentForm: stats.recentForm,
   };
 }
 
 export default function SquadsScreen() {
   const { player } = usePlayer();
+  const { notifications } = useNotifications();
   const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [statsByTeam, setStatsByTeam] = useState<Record<string, TeamStats>>({});
   const [loading, setLoading] = useState(true);
+
+  const pendingInvites = notifications
+    .filter((n) => n.type === 'team_invitation' && n.team_member?.status === 'pending')
+    .slice(0, 2);
 
   const fetchTeams = useCallback(async () => {
     if (!player?.id) {
@@ -79,6 +96,49 @@ export default function SquadsScreen() {
     });
 
     setTeams(data.map((t) => ({ ...t, member_count: countMap[t.id] ?? 1 })));
+
+    // Record stats per team, from played matches
+    let matchData: { home_team_id: string; away_team_id: string | null; score_home: number | null; score_away: number | null }[] = [];
+    if (teamIds.length > 0) {
+      const idList = teamIds.join(',');
+      const { data: mData } = await supabase
+        .from('matches')
+        .select('home_team_id, away_team_id, score_home, score_away')
+        .or(`home_team_id.in.(${idList}),away_team_id.in.(${idList})`)
+        .eq('status', 'played')
+        .order('date', { ascending: false });
+      matchData = mData ?? [];
+    }
+
+    const nextStats: Record<string, TeamStats> = {};
+    for (const teamId of teamIds) {
+      const teamMatches = (matchData ?? []).filter(
+        (m) => m.home_team_id === teamId || m.away_team_id === teamId
+      );
+      let drawn = 0;
+      let lost = 0;
+      let played = 0;
+      const recentForm: ('W' | 'D' | 'L')[] = [];
+      for (const m of teamMatches) {
+        if (m.score_home == null || m.score_away == null) continue;
+        const isHome = m.home_team_id === teamId;
+        const mine = isHome ? m.score_home : m.score_away;
+        const theirs = isHome ? m.score_away : m.score_home;
+        played += 1;
+        if (mine === theirs) { drawn += 1; recentForm.push('D'); }
+        else if (mine > theirs) { recentForm.push('W'); }
+        else { lost += 1; recentForm.push('L'); }
+      }
+      nextStats[teamId] = {
+        played,
+        drawn,
+        lost,
+        winRate: played > 0 ? Math.round(((played - drawn - lost) / played) * 100) : 0,
+        recentForm: recentForm.slice(0, 5).reverse(),
+      };
+    }
+    setStatsByTeam(nextStats);
+
     setLoading(false);
   }, [player]);
 
@@ -116,9 +176,40 @@ export default function SquadsScreen() {
           )}
 
           {!loading && teams.map((team) => (
-            <SquadCard key={team.id} squad={teamToSquad(team, player!.id)} />
+            <SquadCard key={team.id} squad={teamToSquad(team, player!.id, statsByTeam[team.id] ?? EMPTY_STATS)} />
           ))}
         </View>
+
+        {pendingInvites.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.titleRow}>
+              <Text style={styles.sectionLabel}>INVITACIONES</Text>
+              <TouchableOpacity onPress={() => router.push('/notifications')}>
+                <Text style={styles.seeAllText}>Ver todas</Text>
+              </TouchableOpacity>
+            </View>
+
+            {pendingInvites.map((n) => {
+              const teamName = n.team_member?.team?.name ?? 'un equipo';
+              const inviter = n.team_member?.team?.inviter?.full_name ?? 'Alguien';
+              return (
+                <Pressable
+                  key={n.id}
+                  style={styles.inviteCard}
+                  onPress={() => router.push({ pathname: '/notifications/[id]', params: { id: n.id } })}
+                >
+                  <View style={styles.inviteBadge}>
+                    <Text style={styles.inviteBadgeText}>{teamName.slice(0, 2).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inviteTeamName}>{teamName}</Text>
+                    <Text style={styles.inviteMeta}>Invitación de {inviter}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

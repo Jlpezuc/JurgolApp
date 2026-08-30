@@ -26,12 +26,6 @@ const TEAM_COLORS = [
   { id: 'lime',    hex: '#22C55E' },
 ];
 
-const MODALITIES = [
-  { id: '5v5',   label: '5v5',   sub: 'Futbolito' },
-  { id: '7v7',   label: '7v7',   sub: 'Cancha 7'  },
-  { id: '11v11', label: '11v11', sub: 'Full'       },
-];
-
 const MAX_NAME = 40;
 
 export default function CreateTeamScreen() {
@@ -40,7 +34,6 @@ export default function CreateTeamScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState(TEAM_COLORS[0].id);
-  const [selectedModality, setSelectedModality] = useState(MODALITIES[1].id);
   const [loading, setLoading] = useState(false);
 
   async function pickImage() {
@@ -75,15 +68,11 @@ export default function CreateTeamScreen() {
 
     setLoading(true);
 
-    const { data: team, error } = await supabase
-      .from('teams')
-      .insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        created_by: player.id,
-      })
-      .select()
-      .single();
+    const { error } = await supabase.from('teams').insert({
+      name: name.trim(),
+      description: description.trim() || null,
+      created_by: player.id,
+    });
 
     if (error) {
       Alert.alert('Error', error.message);
@@ -91,12 +80,7 @@ export default function CreateTeamScreen() {
       return;
     }
 
-    // Add creator as captain in team_members
-    await supabase.from('team_members').insert({
-      team_id: team.id,
-      player_id: player.id,
-      role: 'captain',
-    });
+    // The on_team_created trigger adds the creator to team_members as owner/accepted.
 
     setLoading(false);
     router.back();
@@ -184,31 +168,6 @@ export default function CreateTeamScreen() {
                     {active && (
                       <Ionicons name="checkmark" size={20} color="#FFFFFF" />
                     )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Modality */}
-          <View style={styles.fieldSection}>
-            <Text style={styles.fieldLabel}>Modalidad favorita</Text>
-            <View style={styles.modalityRow}>
-              {MODALITIES.map((m) => {
-                const active = m.id === selectedModality;
-                return (
-                  <TouchableOpacity
-                    key={m.id}
-                    style={[styles.modalityBtn, active && styles.modalityBtnActive]}
-                    onPress={() => setSelectedModality(m.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.modalityLabel, active && styles.modalityLabelActive]}>
-                      {m.label}
-                    </Text>
-                    <Text style={[styles.modalitySub, active && styles.modalitySubActive]}>
-                      {m.sub}
-                    </Text>
                   </TouchableOpacity>
                 );
               })}

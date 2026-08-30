@@ -43,4 +43,42 @@ export const styles = StyleSheet.create({
     color: Color.fg3,
     textTransform: 'uppercase',
   },
+  seeAllText: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.xs,
+    color: Color.grass600,
+  },
+  inviteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Color.chalk,
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Color.border1,
+  },
+  inviteBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    backgroundColor: Color.infoBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteBadgeText: {
+    fontFamily: Font.display.black,
+    fontSize: 13,
+    color: Color.info,
+  },
+  inviteTeamName: {
+    fontFamily: Font.body.bold,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+  },
+  inviteMeta: {
+    fontFamily: Font.body.regular,
+    fontSize: TextSize.sm,
+    color: Color.fg3,
+  },
 });

@@ -1,0 +1,112 @@
+import { StyleSheet } from 'react-native';
+import { Color, Font, Radius, Space, TextSize } from '@/constants/design';
+
+export const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: Color.field,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Space.s5,
+    paddingBottom: Space.s3,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
+    backgroundColor: Color.chalk,
+    borderWidth: 1,
+    borderColor: Color.border1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: Font.display.bold,
+    fontSize: TextSize.md,
+    color: Color.fg1,
+  },
+  list: {
+    paddingHorizontal: Space.s4,
+    paddingVertical: Space.s3,
+    gap: Space.s2,
+    flexGrow: 1,
+  },
+  emptyText: {
+    fontFamily: Font.body.regular,
+    fontSize: TextSize.sm,
+    color: Color.fg4,
+    textAlign: 'center',
+    marginTop: Space.s8,
+  },
+  bubbleRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  bubbleRowMine: {
+    justifyContent: 'flex-end',
+  },
+  bubble: {
+    maxWidth: '78%',
+    backgroundColor: Color.chalk,
+    borderRadius: Radius.md,
+    paddingHorizontal: Space.s3,
+    paddingVertical: Space.s2 + 2,
+    borderWidth: 1,
+    borderColor: Color.border1,
+  },
+  bubbleMine: {
+    backgroundColor: Color.pitch,
+    borderColor: Color.pitch,
+  },
+  senderName: {
+    fontFamily: Font.mono.bold,
+    fontSize: 10,
+    color: Color.grass600,
+    marginBottom: 2,
+  },
+  bubbleText: {
+    fontFamily: Font.body.regular,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+    lineHeight: 20,
+  },
+  bubbleTextMine: {
+    color: Color.chalk,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Space.s2,
+    paddingHorizontal: Space.s4,
+    paddingTop: Space.s2,
+    backgroundColor: Color.field,
+    borderTopWidth: 1,
+    borderTopColor: Color.border1,
+  },
+  input: {
+    flex: 1,
+    maxHeight: 100,
+    backgroundColor: Color.chalk,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Space.s4,
+    paddingVertical: Space.s3,
+    fontFamily: Font.body.regular,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+    borderWidth: 1,
+    borderColor: Color.border1,
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.pill,
+    backgroundColor: Color.pitch,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

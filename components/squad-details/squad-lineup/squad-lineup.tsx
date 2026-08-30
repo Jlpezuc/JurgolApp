@@ -6,29 +6,13 @@ import { Alert, Pressable, Share, Text, View } from 'react-native';
 import { Color, Font } from '@/constants/design';
 import {
   AttendanceStatus,
-  PlayerPosition,
   SquadDetail,
   SquadPlayer,
 } from '@/constants/squads.mocks';
+import { Match, MatchCard } from '@/components/matches/match-card';
 import { styles } from './squad-lineup.styles';
 
-// ── Position config ──────────────────────────────────────────────────────────
-
-const POSITION_LABELS: Record<PlayerPosition, string> = {
-  [PlayerPosition.PO]:  'Arquero',
-  [PlayerPosition.DEF]: 'Defensa',
-  [PlayerPosition.MC]:  'Mediocampo',
-  [PlayerPosition.DEL]: 'Delantero',
-};
-
-const POSITION_ORDER: PlayerPosition[] = [PlayerPosition.PO, PlayerPosition.DEF, PlayerPosition.MC, PlayerPosition.DEL];
-
-const POSITION_BADGE_COLOR: Record<PlayerPosition, string> = {
-  [PlayerPosition.PO]:  Color.pitch3,
-  [PlayerPosition.DEF]: Color.sky,
-  [PlayerPosition.MC]:  '#0E9E8A',
-  [PlayerPosition.DEL]: Color.clay,
-};
+// ── Attendance config ────────────────────────────────────────────────────────
 
 const ATTENDANCE_DOT_COLOR: Record<AttendanceStatus, string> = {
   [AttendanceStatus.Going]:    Color.grass500,
@@ -112,9 +96,6 @@ function PlayerRowItem({
             </View>
           ) : (
             <View style={styles.playerMeta}>
-              <View style={[styles.positionBadge, { backgroundColor: POSITION_BADGE_COLOR[player.position] }]}>
-                <Text style={styles.positionBadgeText}>{player.position}</Text>
-              </View>
               <Text style={styles.playerNumber}>#{player.number}</Text>
               <View style={[styles.attendanceDot, { backgroundColor: ATTENDANCE_DOT_COLOR[player.attendance] }]} />
               <Text style={styles.attendanceLabel}>{player.attendance}</Text>
@@ -220,7 +201,7 @@ function AttendanceCard({ players }: { players: SquadPlayer[] }) {
   );
 }
 
-function RosterByPosition({
+function Roster({
   players,
   onRemovePlayer,
 }: {
@@ -229,15 +210,8 @@ function RosterByPosition({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const grouped = POSITION_ORDER.reduce<Record<PlayerPosition, SquadPlayer[]>>(
-    (acc, pos) => {
-      acc[pos] = players.filter((p) => p.position === pos);
-      return acc;
-    },
-    { [PlayerPosition.PO]: [], [PlayerPosition.DEF]: [], [PlayerPosition.MC]: [], [PlayerPosition.DEL]: [] } as Record<PlayerPosition, SquadPlayer[]>,
-  );
-
-  const activePositions = POSITION_ORDER.filter((pos) => grouped[pos].length > 0);
+  // Captains first, otherwise keep the roster's natural order
+  const ordered = [...players].sort((a, b) => (b.isCaptain ? 1 : 0) - (a.isCaptain ? 1 : 0));
 
   function handleRemove(player: SquadPlayer) {
     Alert.alert(
@@ -259,30 +233,16 @@ function RosterByPosition({
 
   return (
     <Pressable style={styles.rosterCard} onPress={() => setSelectedId(null)}>
-      {activePositions.map((pos, posIndex) => {
-        const isLastPosition = posIndex === activePositions.length - 1;
-        return (
-          <View key={pos}>
-            <View style={styles.positionHeader}>
-              <Text style={styles.positionLabel}>{POSITION_LABELS[pos]}</Text>
-              <Text style={styles.positionCount}>{grouped[pos].length}</Text>
-            </View>
-            {grouped[pos].map((player, i) => {
-              const isLastPlayer = i === grouped[pos].length - 1;
-              return (
-                <PlayerRowItem
-                  key={`${player.id}-${i}`}
-                  player={player}
-                  isLast={isLastPosition && isLastPlayer}
-                  selected={selectedId === player.id}
-                  onSelect={() => setSelectedId(selectedId === player.id ? null : player.id)}
-                  onRemove={() => handleRemove(player)}
-                />
-              );
-            })}
-          </View>
-        );
-      })}
+      {ordered.map((player, i) => (
+        <PlayerRowItem
+          key={`${player.id}-${i}`}
+          player={player}
+          isLast={i === ordered.length - 1}
+          selected={selectedId === player.id}
+          onSelect={() => setSelectedId(selectedId === player.id ? null : player.id)}
+          onRemove={() => handleRemove(player)}
+        />
+      ))}
     </Pressable>
   );
 }
@@ -301,15 +261,95 @@ function PlantillaTab({ detail, onRemovePlayer }: { detail: SquadDetail; onRemov
       >
         <Text style={styles.inviteButtonText}>+ Invitar jugador</Text>
       </Pressable>
-      <RosterByPosition players={detail.players} onRemovePlayer={onRemovePlayer} />
+      <Roster players={detail.players} onRemovePlayer={onRemovePlayer} />
     </>
   );
 }
 
-function EmptyTab({ label }: { label: string }) {
+function ProximosTab({
+  teamId,
+  matches,
+  onCreateMatch,
+  onRegisterResult,
+}: {
+  teamId: string;
+  matches: Match[];
+  onCreateMatch: () => void;
+  onRegisterResult: (match: Match) => void;
+}) {
+  const upcoming = matches.filter((m) => m.status === 'scheduled');
+
   return (
-    <View style={styles.emptyTab}>
-      <Text style={styles.emptyText}>{label} próximamente</Text>
+    <View style={{ gap: 12 }}>
+      <Pressable style={styles.inviteButton} onPress={onCreateMatch}>
+        <Text style={styles.inviteButtonText}>+ Crear partido</Text>
+      </Pressable>
+
+      {upcoming.length === 0 ? (
+        <View style={styles.emptyTab}>
+          <Text style={styles.emptyText}>No hay partidos programados</Text>
+        </View>
+      ) : (
+        upcoming.map((m) => (
+          <MatchCard
+            key={m.id}
+            match={m}
+            viewerTeamId={teamId}
+            footer={
+              <Pressable style={styles.registerResultBtn} onPress={() => onRegisterResult(m)}>
+                <Text style={styles.registerResultBtnText}>Cargar resultado</Text>
+              </Pressable>
+            }
+          />
+        ))
+      )}
+    </View>
+  );
+}
+
+function HistorialTab({ teamId, matches }: { teamId: string; matches: Match[] }) {
+  const played = matches.filter((m) => m.status === 'played');
+
+  if (played.length === 0) {
+    return (
+      <View style={styles.emptyTab}>
+        <Text style={styles.emptyText}>Aún no has jugado partidos</Text>
+      </View>
+    );
+  }
+
+  function handleRematch(m: Match) {
+    const opponent = teamId === m.home_team_id ? m.away_team : m.home_team;
+    if (!opponent) return;
+    router.push({
+      pathname: '/create-match',
+      params: {
+        squadId: teamId,
+        rematchTeamId: opponent.id,
+        rematchTeamName: opponent.name,
+        rematchCreatedBy: opponent.created_by,
+        modality: m.modality,
+        location: m.location ?? '',
+      },
+    });
+  }
+
+  return (
+    <View style={{ gap: 12 }}>
+      {played.map((m) => (
+        <MatchCard
+          key={m.id}
+          match={m}
+          viewerTeamId={teamId}
+          footer={
+            m.home_team && m.away_team ? (
+              <Pressable style={styles.registerResultBtn} onPress={() => handleRematch(m)}>
+                <Text style={styles.registerResultBtnText}>Revancha</Text>
+              </Pressable>
+            ) : undefined
+          }
+        />
+      ))}
     </View>
   );
 }
@@ -318,15 +358,24 @@ function EmptyTab({ label }: { label: string }) {
 
 type TabKey = 'plantilla' | 'proximos' | 'historial';
 
-const TABS: { key: TabKey; label: string; count: (d: SquadDetail) => number }[] = [
+const TABS: { key: TabKey; label: string; count: (d: SquadDetail, matches: Match[]) => number }[] = [
   { key: 'plantilla', label: 'Plantilla', count: (d) => d.players.length },
-  { key: 'proximos',  label: 'Próximos',  count: () => 3 },
-  { key: 'historial', label: 'Historial', count: () => 6 },
+  { key: 'proximos',  label: 'Próximos',  count: (_d, matches) => matches.filter((m) => m.status === 'scheduled').length },
+  { key: 'historial', label: 'Historial', count: (_d, matches) => matches.filter((m) => m.status === 'played').length },
 ];
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function SquadLineup({ detail, onRemovePlayer }: { detail: SquadDetail; onRemovePlayer?: (id: string) => void }) {
+type Props = {
+  detail: SquadDetail;
+  teamId: string;
+  matches: Match[];
+  onRemovePlayer?: (id: string) => void;
+  onCreateMatch: () => void;
+  onRegisterResult: (match: Match) => void;
+};
+
+export function SquadLineup({ detail, teamId, matches, onRemovePlayer, onCreateMatch, onRegisterResult }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('plantilla');
 
   return (
@@ -334,7 +383,7 @@ export function SquadLineup({ detail, onRemovePlayer }: { detail: SquadDetail; o
       <View style={styles.tabBar}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
-          const count = tab.count(detail);
+          const count = tab.count(detail, matches);
           return (
             <Pressable
               key={tab.key}
@@ -355,8 +404,10 @@ export function SquadLineup({ detail, onRemovePlayer }: { detail: SquadDetail; o
       </View>
 
       {activeTab === 'plantilla' && <PlantillaTab detail={detail} onRemovePlayer={onRemovePlayer} />}
-      {activeTab === 'proximos'  && <EmptyTab label="Próximos partidos" />}
-      {activeTab === 'historial' && <EmptyTab label="Historial" />}
+      {activeTab === 'proximos'  && (
+        <ProximosTab teamId={teamId} matches={matches} onCreateMatch={onCreateMatch} onRegisterResult={onRegisterResult} />
+      )}
+      {activeTab === 'historial' && <HistorialTab teamId={teamId} matches={matches} />}
     </>
   );
 }

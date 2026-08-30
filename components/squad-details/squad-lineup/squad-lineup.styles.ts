@@ -127,30 +127,6 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  positionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Space.s4,
-    paddingVertical: Space.s3,
-    backgroundColor: Color.field,
-    borderTopWidth: 1,
-    borderTopColor: Color.border1,
-    borderBottomWidth: 1,
-    borderBottomColor: Color.border1,
-  },
-  positionLabel: {
-    fontFamily: Font.mono.medium,
-    fontSize: TextSize.xs,
-    letterSpacing: 0.14 * TextSize.xs,
-    color: Color.fg3,
-    textTransform: 'uppercase',
-  },
-  positionCount: {
-    fontFamily: Font.mono.medium,
-    fontSize: TextSize.xs,
-    color: Color.fg4,
-  },
   playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -203,16 +179,6 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Space.s2,
-  },
-  positionBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: Radius.xs,
-  },
-  positionBadgeText: {
-    fontFamily: Font.mono.bold,
-    fontSize: 10,
-    color: Color.chalk,
   },
   playerNumber: {
     fontFamily: Font.mono.medium,
@@ -276,5 +242,19 @@ export const styles = StyleSheet.create({
     fontFamily: Font.body.semibold,
     fontSize: TextSize.base,
     color: Color.fg1,
+  },
+
+  // ── Match result button ───────────────────────────────────────────────────
+  registerResultBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.sm,
+    paddingVertical: Space.s2 + 2,
+    backgroundColor: Color.pitch,
+  },
+  registerResultBtnText: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.sm,
+    color: Color.chalk,
   },
 });

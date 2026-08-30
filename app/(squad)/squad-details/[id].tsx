@@ -5,9 +5,12 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnnounceModal } from '@/components/squad-details/announce-modal/announce-modal';
 import { SquadLineup } from '@/components/squad-details/squad-lineup/squad-lineup';
+import { Match } from '@/components/matches/match-card';
+import { RegisterResultSheet } from '@/components/matches/register-result-sheet';
 import { Color } from '@/constants/design';
-import { AttendanceStatus, PlayerPosition, SquadDetail } from '@/constants/squads.mocks';
+import { AttendanceStatus, SquadDetail } from '@/constants/squads.mocks';
 import { usePlayer } from '@/hooks/usePlayer';
 import { supabase } from '@/lib/supabase';
 import { styles } from './squad-detail.styles';
@@ -19,6 +22,7 @@ type TeamData = {
   created_at: string;
   description: string | null;
   logo_url: string | null;
+  elo: number;
 };
 
 type MemberRow = {
@@ -29,35 +33,13 @@ type MemberRow = {
   players: {
     id: string;
     full_name: string;
-    position: string | null;
     overall: number | null;
     user_id: string | null;
     has_account: boolean | null;
   };
 };
 
-type MatchRow = {
-  id: string;
-  opponent_name: string;
-  date: string;
-  score_us: number | null;
-  score_them: number | null;
-  status: 'scheduled' | 'played' | 'cancelled';
-  match_attendance: { player_id: string; status: string }[];
-};
-
-const POSITION_MAP: Record<string, PlayerPosition> = {
-  PO: PlayerPosition.PO,
-  DEF: PlayerPosition.DEF,
-  MC: PlayerPosition.MC,
-  DEL: PlayerPosition.DEL,
-};
-
-const ATTENDANCE_MAP: Record<string, AttendanceStatus> = {
-  going: AttendanceStatus.Going,
-  maybe: AttendanceStatus.Maybe,
-  not_going: AttendanceStatus.NotGoing,
-};
+const MATCH_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
 
 export default function SquadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -65,31 +47,33 @@ export default function SquadDetailScreen() {
   const { player: currentPlayer } = usePlayer();
   const [team, setTeam] = useState<TeamData | null>(null);
   const [members, setMembers] = useState<MemberRow[]>([]);
-  const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [announceOpen, setAnnounceOpen] = useState(false);
+  const [resultMatch, setResultMatch] = useState<Match | null>(null);
+  const [resultParticipants, setResultParticipants] = useState<{ player_id: string; full_name: string }[]>([]);
 
-  useFocusEffect(useCallback(() => {
-    async function load() {
-      const [{ data: teamData }, { data: memberData }, { data: matchData }] = await Promise.all([
-        supabase.from('teams').select('*').eq('id', id).single(),
-        supabase
-          .from('team_members')
-          .select('player_id, role, jersey_number, status, players(id, full_name, position, overall, user_id, has_account)')
-          .eq('team_id', id)
-          .neq('status', 'rejected'),
-        supabase
-          .from('matches')
-          .select('id, opponent_name, date, score_us, score_them, status, match_attendance(player_id, status)')
-          .eq('team_id', id)
-          .order('date', { ascending: false }),
-      ]);
-      setTeam(teamData ?? null);
-      setMembers((memberData as unknown as MemberRow[]) ?? []);
-      setMatches((matchData as MatchRow[]) ?? []);
-      setLoading(false);
-    }
-    if (id) load();
-  }, [id]));
+  const load = useCallback(async () => {
+    const [{ data: teamData }, { data: memberData }, { data: matchData }] = await Promise.all([
+      supabase.from('teams').select('*').eq('id', id).single(),
+      supabase
+        .from('team_members')
+        .select('player_id, role, jersey_number, status, players(id, full_name, overall, user_id, has_account)')
+        .eq('team_id', id)
+        .neq('status', 'rejected'),
+      supabase
+        .from('matches')
+        .select(MATCH_SELECT)
+        .or(`home_team_id.eq.${id},away_team_id.eq.${id}`)
+        .order('date', { ascending: false }),
+    ]);
+    setTeam(teamData ?? null);
+    setMembers((memberData as unknown as MemberRow[]) ?? []);
+    setMatches((matchData as unknown as Match[]) ?? []);
+    setLoading(false);
+  }, [id]);
+
+  useFocusEffect(useCallback(() => { if (id) load(); }, [id, load]));
 
   if (loading) {
     return (
@@ -133,6 +117,20 @@ export default function SquadDetailScreen() {
     setMembers((prev) => prev.filter((m) => m.player_id !== playerId));
   }
 
+  async function openResultSheet(match: Match) {
+    const { data } = await supabase
+      .from('match_players')
+      .select('player_id, status, players(full_name)')
+      .eq('match_id', match.id)
+      .eq('status', 'confirmed');
+    const rows = (data ?? []).map((r: any) => ({
+      player_id: r.player_id,
+      full_name: r.players?.full_name ?? 'Jugador',
+    }));
+    setResultParticipants(rows);
+    setResultMatch(match);
+  }
+
   const isCaptain = team.created_by === currentPlayer?.id;
   const captain = members.find((m) => m.player_id === team.created_by);
   const captainName = captain?.players?.full_name ?? '—';
@@ -140,26 +138,23 @@ export default function SquadDetailScreen() {
 
   // Record stats from played matches
   const played = matches.filter((m) => m.status === 'played');
-  const won   = played.filter((m) => (m.score_us ?? 0) > (m.score_them ?? 0)).length;
-  const drawn = played.filter((m) => m.score_us === m.score_them && m.score_us !== null).length;
-  const lost  = played.filter((m) => (m.score_us ?? 0) < (m.score_them ?? 0)).length;
+  function resultOf(m: Match): 'W' | 'D' | 'L' | null {
+    if (m.score_home == null || m.score_away == null) return null;
+    const isHome = m.home_team_id === team!.id;
+    const mine = isHome ? m.score_home : m.score_away;
+    const theirs = isHome ? m.score_away : m.score_home;
+    if (mine === theirs) return 'D';
+    return mine > theirs ? 'W' : 'L';
+  }
+  const won   = played.filter((m) => resultOf(m) === 'W').length;
+  const drawn = played.filter((m) => resultOf(m) === 'D').length;
+  const lost  = played.filter((m) => resultOf(m) === 'L').length;
   const winRate = played.length > 0 ? Math.round((won / played.length) * 100) : null;
-  const recentForm = played
-    .slice(0, 5)
-    .map((m) =>
-      (m.score_us ?? 0) > (m.score_them ?? 0) ? 'W' : m.score_us === m.score_them ? 'D' : 'L'
-    )
-    .reverse();
-
-  // Next match for attendance
-  const nextMatch = matches.find((m) => m.status === 'scheduled');
-  const attendanceMap = Object.fromEntries(
-    (nextMatch?.match_attendance ?? []).map((a) => [a.player_id, a.status])
-  );
+  const recentForm = played.slice(0, 5).map((m) => resultOf(m)).filter(Boolean).reverse() as ('W' | 'D' | 'L')[];
 
   const squadDetail: SquadDetail = {
     squadId: team.id,
-    nextMatchDate: nextMatch?.date ?? '',
+    nextMatchDate: matches.find((m) => m.status === 'scheduled')?.date ?? '',
     players: members.map((m, i) => {
       const nameParts = (m.players?.full_name ?? 'Jugador').split(' ');
       return {
@@ -167,9 +162,8 @@ export default function SquadDetailScreen() {
         firstName: nameParts[0] ?? 'Jugador',
         lastName: nameParts.slice(1).join(' ') || '—',
         number: m.jersey_number ?? i + 1,
-        position: POSITION_MAP[m.players?.position ?? ''] ?? PlayerPosition.MC,
         overall: m.players?.overall ?? 0,
-        attendance: ATTENDANCE_MAP[attendanceMap[m.player_id] ?? 'maybe'] ?? AttendanceStatus.Maybe,
+        attendance: AttendanceStatus.Maybe,
         isCaptain: m.player_id === team.created_by,
         userId: m.players?.user_id ?? null,
         hasAccount: m.players?.has_account ?? false,
@@ -177,6 +171,10 @@ export default function SquadDetailScreen() {
       };
     }),
   };
+
+  const acceptedMembers = members
+    .filter((m) => m.status === 'accepted')
+    .map((m) => ({ player_id: m.player_id, full_name: m.players?.full_name ?? 'Jugador' }));
 
   return (
     <View style={styles.root}>
@@ -194,8 +192,20 @@ export default function SquadDetailScreen() {
             <Ionicons name="chevron-back" size={18} color={Color.fg3} onPress={() => router.back()} />
           </View>
           <Text style={styles.headerTitle}>Detalle de equipo</Text>
-          <View style={styles.headerBtn}>
-            <Ionicons name="share-outline" size={18} color={Color.fg3} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {isCaptain && (
+              <View style={styles.headerBtn}>
+                <Ionicons name="megaphone-outline" size={18} color={Color.fg3} onPress={() => setAnnounceOpen(true)} />
+              </View>
+            )}
+            <View style={styles.headerBtn}>
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={18}
+                color={Color.fg3}
+                onPress={() => router.push({ pathname: '/squad-details/chat/[id]', params: { id: team.id } })}
+              />
+            </View>
           </View>
         </View>
 
@@ -228,6 +238,10 @@ export default function SquadDetailScreen() {
             <View style={styles.heroStatItem}>
               <Text style={styles.heroStatLabel}>Capitán</Text>
               <Text style={styles.heroStatValue}>{captainName}</Text>
+            </View>
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>Elo</Text>
+              <Text style={styles.heroStatValue}>{team.elo}</Text>
             </View>
           </View>
         </View>
@@ -288,9 +302,36 @@ export default function SquadDetailScreen() {
             </View>
           </View>
 
-          <SquadLineup detail={squadDetail} onRemovePlayer={handleRemovePlayer} />
+          <SquadLineup
+            detail={squadDetail}
+            teamId={team.id}
+            matches={matches}
+            onRemovePlayer={handleRemovePlayer}
+            onCreateMatch={() => router.push({ pathname: '/create-match', params: { squadId: team.id } })}
+            onRegisterResult={openResultSheet}
+          />
         </View>
       </ScrollView>
+
+      <AnnounceModal
+        visible={announceOpen}
+        onClose={() => setAnnounceOpen(false)}
+        teamId={team.id}
+        teamName={team.name}
+        members={acceptedMembers}
+      />
+
+      {resultMatch && (
+        <RegisterResultSheet
+          visible={!!resultMatch}
+          onClose={() => setResultMatch(null)}
+          matchId={resultMatch.id}
+          homeName={resultMatch.home_team?.name ?? 'Local'}
+          awayName={resultMatch.away_team?.name ?? 'Visitante'}
+          participants={resultParticipants}
+          onSaved={load}
+        />
+      )}
     </View>
   );
 }

@@ -42,6 +42,50 @@ function present(n: AppNotification): Presentation {
     };
   }
 
+  if (n.type === 'match_created') {
+    const home = n.match?.home_team?.name ?? 'un equipo';
+    return {
+      eyebrow: 'PARTIDO',
+      eyebrowColor: Color.grass600,
+      icon: 'football',
+      iconBg: Color.successBg,
+      iconColor: Color.grass600,
+      title: 'Partido creado',
+      body: n.message?.trim() ? n.message : `${home} organizó un partido.`,
+      pending: true,
+      tappable: !!n.match_id,
+    };
+  }
+
+  if (n.type === 'team_challenge') {
+    return {
+      eyebrow: 'PARTIDO',
+      eyebrowColor: Color.grass600,
+      icon: 'shield-outline',
+      iconBg: Color.successBg,
+      iconColor: Color.grass600,
+      title: 'Postulación de rival',
+      body: n.message?.trim() ? n.message : 'Un equipo quiere ser tu rival.',
+      pending: true,
+      tappable: !!n.match_id,
+    };
+  }
+
+  if (n.type === 'announcement') {
+    const team = n.announce_team?.name ?? 'tu equipo';
+    return {
+      eyebrow: n.announce_team?.name ?? 'EQUIPO',
+      eyebrowColor: Color.info,
+      icon: 'megaphone-outline',
+      iconBg: Color.infoBg,
+      iconColor: Color.info,
+      title: `Aviso de ${team}`,
+      body: n.message?.trim() ? n.message : 'Tu capitán envió un aviso.',
+      pending: false,
+      tappable: false,
+    };
+  }
+
   // player_removed
   return {
     eyebrow: 'EQUIPO',
@@ -61,6 +105,10 @@ function NotificationCard({ n }: { n: AppNotification }) {
 
   function onPress() {
     if (!p.tappable) return;
+    if (n.type === 'match_created' || n.type === 'team_challenge') {
+      router.push({ pathname: '/notifications/match/[id]', params: { id: n.id } });
+      return;
+    }
     router.push({ pathname: '/notifications/[id]', params: { id: n.id } });
   }
 

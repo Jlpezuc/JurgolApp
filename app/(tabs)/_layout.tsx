@@ -41,6 +41,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="social/index"
+        options={{
+          title: 'Social',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="newspaper.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="match/index"
         options={{
           title: 'Partido',
