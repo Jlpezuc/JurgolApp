@@ -71,6 +71,34 @@ function present(n: AppNotification): Presentation {
     };
   }
 
+  if (n.type === 'result_reported') {
+    return {
+      eyebrow: 'RESULTADO',
+      eyebrowColor: Color.warning,
+      icon: 'clipboard-outline',
+      iconBg: Color.warningBg,
+      iconColor: Color.warning,
+      title: 'Confirma el resultado',
+      body: n.message?.trim() ? n.message : 'El rival cargó el resultado de un partido.',
+      pending: true,
+      tappable: !!n.match_id,
+    };
+  }
+
+  if (n.type === 'match_cancelled') {
+    return {
+      eyebrow: 'PARTIDO',
+      eyebrowColor: Color.danger,
+      icon: 'close-circle-outline',
+      iconBg: Color.dangerBg,
+      iconColor: Color.danger,
+      title: 'Partido cancelado',
+      body: n.message?.trim() ? n.message : 'Se canceló un partido en el que estabas.',
+      pending: false,
+      tappable: false,
+    };
+  }
+
   if (n.type === 'announcement') {
     const team = n.announce_team?.name ?? 'tu equipo';
     return {
@@ -105,7 +133,7 @@ function NotificationCard({ n }: { n: AppNotification }) {
 
   function onPress() {
     if (!p.tappable) return;
-    if (n.type === 'match_created' || n.type === 'team_challenge') {
+    if (n.type === 'match_created' || n.type === 'team_challenge' || n.type === 'result_reported') {
       router.push({ pathname: '/notifications/match/[id]', params: { id: n.id } });
       return;
     }

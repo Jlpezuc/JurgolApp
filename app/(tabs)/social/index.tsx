@@ -7,16 +7,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Match, MatchCard } from '@/components/matches/match-card';
 import { Color } from '@/constants/design';
 import { usePlayer } from '@/hooks/usePlayer';
+import { scheduleMatchReminder } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { styles } from './social.styles';
 
-const TEAM_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
+const TEAM_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, score_reported_by, score_confirmed, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
+
+type ModalityFilter = 'all' | '5v5' | '7v7' | '11v11';
+type KindFilter = 'all' | 'teams' | 'players';
+
+const MODALITY_FILTERS: { key: ModalityFilter; label: string }[] = [
+  { key: 'all', label: 'Todas' },
+  { key: '5v5', label: '5v5' },
+  { key: '7v7', label: '7v7' },
+  { key: '11v11', label: '11v11' },
+];
+
+const KIND_FILTERS: { key: KindFilter; label: string }[] = [
+  { key: 'all', label: 'Todo' },
+  { key: 'teams', label: 'Buscan rival' },
+  { key: 'players', label: 'Faltan jugadores' },
+];
 
 export default function SocialScreen() {
   const { player } = usePlayer();
   const [myTeams, setMyTeams] = useState<{ id: string; name: string }[]>([]);
   const [market, setMarket] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalityFilter, setModalityFilter] = useState<ModalityFilter>('all');
+  const [kindFilter, setKindFilter] = useState<KindFilter>('all');
 
   const load = useCallback(async () => {
     if (!player?.id) { setLoading(false); return; }
@@ -66,6 +85,12 @@ export default function SocialScreen() {
       return;
     }
     await supabase.from('matches').update({ slots_needed: Math.max(0, match.slots_needed - 1) }).eq('id', match.id);
+    await scheduleMatchReminder(
+      match.id,
+      match.date,
+      '⚽ Tienes partido hoy',
+      `${match.home_team?.name ?? 'Partido'} · ${match.modality}${match.location ? ` en ${match.location}` : ''}.`
+    );
     load();
   }
 
@@ -107,6 +132,13 @@ export default function SocialScreen() {
     );
   }
 
+  const visibleMarket = market.filter((m) => {
+    if (modalityFilter !== 'all' && m.modality !== modalityFilter) return false;
+    if (kindFilter === 'teams' && !m.seeking_opponent) return false;
+    if (kindFilter === 'players' && m.slots_needed <= 0) return false;
+    return true;
+  });
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -131,8 +163,43 @@ export default function SocialScreen() {
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>PARTIDOS QUE TE PUEDEN INTERESAR</Text>
-              {market.length === 0 && <Text style={styles.emptyText}>No hay partidos abiertos por ahora.</Text>}
-              {market.map((m) => (
+
+              <View style={styles.filterRow}>
+                {KIND_FILTERS.map((f) => (
+                  <TouchableOpacity
+                    key={f.key}
+                    style={[styles.filterChip, kindFilter === f.key && styles.filterChipActive]}
+                    onPress={() => setKindFilter(f.key)}
+                  >
+                    <Text style={[styles.filterChipText, kindFilter === f.key && styles.filterChipTextActive]}>
+                      {f.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.filterRow}>
+                {MODALITY_FILTERS.map((f) => (
+                  <TouchableOpacity
+                    key={f.key}
+                    style={[styles.filterChip, modalityFilter === f.key && styles.filterChipActive]}
+                    onPress={() => setModalityFilter(f.key)}
+                  >
+                    <Text style={[styles.filterChipText, modalityFilter === f.key && styles.filterChipTextActive]}>
+                      {f.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {visibleMarket.length === 0 && (
+                <Text style={styles.emptyText}>
+                  {market.length === 0
+                    ? 'No hay partidos abiertos por ahora.'
+                    : 'Ningún partido coincide con esos filtros.'}
+                </Text>
+              )}
+              {visibleMarket.map((m) => (
                 <MatchCard
                   key={m.id}
                   match={m}

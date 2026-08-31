@@ -16,6 +16,8 @@ export type Match = {
   status: 'scheduled' | 'played' | 'cancelled';
   score_home: number | null;
   score_away: number | null;
+  score_reported_by: string | null;
+  score_confirmed: boolean;
   created_by: string;
   home_team: MatchTeamInfo | null;
   away_team: MatchTeamInfo | null;
@@ -51,6 +53,9 @@ type Props = {
 
 export function MatchCard({ match, viewerTeamId, footer, onPress }: Props) {
   const result = match.status === 'played' ? resultFor(match, viewerTeamId) : null;
+  // A score sitting on a still-'scheduled' match is a proposal waiting for the rival.
+  const awaitingConfirmation =
+    match.status === 'scheduled' && match.score_home != null && match.score_away != null;
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={onPress ? 0.8 : 1} onPress={onPress} disabled={!onPress}>
@@ -67,7 +72,7 @@ export function MatchCard({ match, viewerTeamId, footer, onPress }: Props) {
           <Text style={styles.elo}>ELO {match.home_team?.elo ?? '—'}</Text>
         </View>
 
-        {match.status === 'played' ? (
+        {match.status === 'played' || awaitingConfirmation ? (
           <View style={styles.scoreBox}>
             <Text style={[styles.scoreText, result && { color: RESULT_COLOR[result] }]}>
               {match.score_home} - {match.score_away}
@@ -100,6 +105,12 @@ export function MatchCard({ match, viewerTeamId, footer, onPress }: Props) {
       </View>
 
       {match.location ? <Text style={styles.location}>📍 {match.location}</Text> : null}
+
+      {awaitingConfirmation && (
+        <View style={[styles.pill, styles.pillWarn, { alignSelf: 'flex-start' }]}>
+          <Text style={styles.pillText}>RESULTADO POR CONFIRMAR</Text>
+        </View>
+      )}
 
       {footer}
     </TouchableOpacity>

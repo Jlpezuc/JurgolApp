@@ -1,15 +1,16 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Match, MatchCard } from '@/components/matches/match-card';
 import { RegisterResultSheet } from '@/components/matches/register-result-sheet';
 import { usePlayer } from '@/hooks/usePlayer';
+import { cancelMatchReminders } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { styles } from './match.styles';
 
-const TEAM_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
+const TEAM_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, score_reported_by, score_confirmed, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
 
 export default function MatchScreen() {
   const { player } = usePlayer();
@@ -68,6 +69,47 @@ export default function MatchScreen() {
     setResultMatch(match);
   }
 
+  function confirmCancel(m: Match) {
+    Alert.alert(
+      'Cancelar partido',
+      'Se avisará a los jugadores confirmados. El partido dejará de aparecer como próximo.',
+      [
+        { text: 'Volver', style: 'cancel' },
+        { text: 'Cancelar partido', style: 'destructive', onPress: () => cancelMatch(m) },
+      ]
+    );
+  }
+
+  async function cancelMatch(m: Match) {
+    const { error } = await supabase.from('matches').update({ status: 'cancelled' }).eq('id', m.id);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    // Tell everyone who was confirmed, except whoever cancelled it.
+    const { data: confirmed } = await supabase
+      .from('match_players')
+      .select('player_id')
+      .eq('match_id', m.id)
+      .eq('status', 'confirmed');
+
+    const recipients = (confirmed ?? []).map((r) => r.player_id).filter((pid) => pid !== player?.id);
+    if (recipients.length > 0) {
+      await supabase.from('notifications').insert(
+        recipients.map((pid) => ({
+          recipient_player_id: pid,
+          type: 'match_cancelled',
+          message: `Se canceló el partido de ${m.home_team?.name ?? 'tu equipo'}.`,
+          match_id: m.id,
+        }))
+      );
+    }
+
+    await cancelMatchReminders(m.id);
+    load();
+  }
+
   function handleRematch(m: Match) {
     const myTeamId = myTeamIds.includes(m.home_team_id) ? m.home_team_id : m.away_team_id;
     const opponent = myTeamId === m.home_team_id ? m.away_team : m.home_team;
@@ -111,6 +153,11 @@ export default function MatchScreen() {
                         <TouchableOpacity style={[styles.smallBtn, styles.smallBtnDark]} onPress={() => openResultSheet(m)}>
                           <Text style={[styles.smallBtnText, styles.smallBtnTextDark]}>Cargar resultado</Text>
                         </TouchableOpacity>
+                        {m.created_by === player?.id && (
+                          <TouchableOpacity style={[styles.smallBtn, styles.smallBtnDanger]} onPress={() => confirmCancel(m)}>
+                            <Text style={[styles.smallBtnText, styles.smallBtnTextDanger]}>Cancelar</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     }
                   />
@@ -151,6 +198,17 @@ export default function MatchScreen() {
           awayName={resultMatch.away_team?.name ?? 'Visitante'}
           participants={participants}
           onSaved={load}
+          reporterPlayerId={player?.id ?? null}
+          opponentTeamId={
+            myTeamIds.includes(resultMatch.home_team_id)
+              ? resultMatch.away_team?.id ?? null
+              : resultMatch.home_team?.id ?? null
+          }
+          opponentCaptainId={
+            myTeamIds.includes(resultMatch.home_team_id)
+              ? resultMatch.away_team?.created_by ?? null
+              : resultMatch.home_team?.created_by ?? null
+          }
         />
       )}
     </SafeAreaView>

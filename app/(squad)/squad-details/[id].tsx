@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Share, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnnounceModal } from '@/components/squad-details/announce-modal/announce-modal';
@@ -12,8 +12,11 @@ import { RegisterResultSheet } from '@/components/matches/register-result-sheet'
 import { Color } from '@/constants/design';
 import { AttendanceStatus, SquadDetail } from '@/constants/squads.mocks';
 import { usePlayer } from '@/hooks/usePlayer';
+import { cancelMatchReminders, scheduleMatchReminder } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { styles } from './squad-detail.styles';
+
+export type MatchAttendance = 'invited' | 'confirmed' | 'declined';
 
 type TeamData = {
   id: string;
@@ -36,10 +39,11 @@ type MemberRow = {
     overall: number | null;
     user_id: string | null;
     has_account: boolean | null;
+    photo_url: string | null;
   };
 };
 
-const MATCH_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
+const MATCH_SELECT = 'id, home_team_id, away_team_id, modality, date, location, seeking_opponent, slots_needed, status, score_home, score_away, score_reported_by, score_confirmed, created_by, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)';
 
 export default function SquadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,13 +56,15 @@ export default function SquadDetailScreen() {
   const [announceOpen, setAnnounceOpen] = useState(false);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
   const [resultParticipants, setResultParticipants] = useState<{ player_id: string; full_name: string }[]>([]);
+  const [nextMatch, setNextMatch] = useState<Match | null>(null);
+  const [attendance, setAttendance] = useState<Record<string, MatchAttendance>>({});
 
   const load = useCallback(async () => {
     const [{ data: teamData }, { data: memberData }, { data: matchData }] = await Promise.all([
       supabase.from('teams').select('*').eq('id', id).single(),
       supabase
         .from('team_members')
-        .select('player_id, role, jersey_number, status, players(id, full_name, overall, user_id, has_account)')
+        .select('player_id, role, jersey_number, status, players(id, full_name, overall, user_id, has_account, photo_url)')
         .eq('team_id', id)
         .neq('status', 'rejected'),
       supabase
@@ -69,7 +75,29 @@ export default function SquadDetailScreen() {
     ]);
     setTeam(teamData ?? null);
     setMembers((memberData as unknown as MemberRow[]) ?? []);
-    setMatches((matchData as unknown as Match[]) ?? []);
+
+    const rows = (matchData as unknown as Match[]) ?? [];
+    setMatches(rows);
+
+    // Attendance is tracked against the soonest upcoming match of this team.
+    const upcoming = rows
+      .filter((m) => m.status === 'scheduled' && new Date(m.date).getTime() >= Date.now())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const next = upcoming[0] ?? null;
+    setNextMatch(next);
+
+    if (next) {
+      const { data: mp } = await supabase
+        .from('match_players')
+        .select('player_id, status')
+        .eq('match_id', next.id);
+      setAttendance(
+        Object.fromEntries((mp ?? []).map((r) => [r.player_id, r.status as MatchAttendance]))
+      );
+    } else {
+      setAttendance({});
+    }
+
     setLoading(false);
   }, [id]);
 
@@ -117,6 +145,66 @@ export default function SquadDetailScreen() {
     setMembers((prev) => prev.filter((m) => m.player_id !== playerId));
   }
 
+  async function handleSetAttendance(status: MatchAttendance) {
+    if (!nextMatch || !currentPlayer?.id) return;
+
+    const { error } = await supabase.from('match_players').upsert(
+      {
+        match_id: nextMatch.id,
+        player_id: currentPlayer.id,
+        status,
+        source: 'notification',
+      },
+      { onConflict: 'match_id,player_id' }
+    );
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    setAttendance((prev) => ({ ...prev, [currentPlayer.id]: status }));
+
+    // Keep the local reminder in sync with the answer.
+    if (status === 'confirmed') {
+      await scheduleMatchReminder(
+        nextMatch.id,
+        nextMatch.date,
+        '⚽ Tienes partido hoy',
+        `${team!.name} juega ${nextMatch.modality}${nextMatch.location ? ` en ${nextMatch.location}` : ''}.`
+      );
+    } else {
+      await cancelMatchReminders(nextMatch.id);
+    }
+  }
+
+  async function handleLeaveTeam() {
+    Alert.alert('Salir del equipo', `¿Seguro que quieres salir de ${team!.name}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Salir',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.rpc('leave_team', { p_team_id: id });
+          if (error) {
+            Alert.alert('Error', error.message);
+            return;
+          }
+          router.dismissTo('/(tabs)/squads');
+        },
+      },
+    ]);
+  }
+
+  async function handleShareInvite() {
+    await Share.share({
+      message:
+        `¡Únete a ${team!.name} en JurgolApp!\n\n` +
+        `Abre este enlace si ya tienes la app instalada:\n` +
+        `jurgolapp://join-team/${team!.id}`,
+    });
+  }
+
   async function openResultSheet(match: Match) {
     const { data } = await supabase
       .from('match_players')
@@ -152,9 +240,15 @@ export default function SquadDetailScreen() {
   const winRate = played.length > 0 ? Math.round((won / played.length) * 100) : null;
   const recentForm = played.slice(0, 5).map((m) => resultOf(m)).filter(Boolean).reverse() as ('W' | 'D' | 'L')[];
 
+  const ATTENDANCE_MAP: Record<MatchAttendance, AttendanceStatus> = {
+    confirmed: AttendanceStatus.Going,
+    declined: AttendanceStatus.NotGoing,
+    invited: AttendanceStatus.Maybe,
+  };
+
   const squadDetail: SquadDetail = {
     squadId: team.id,
-    nextMatchDate: matches.find((m) => m.status === 'scheduled')?.date ?? '',
+    nextMatchDate: nextMatch?.date ?? '',
     players: members.map((m, i) => {
       const nameParts = (m.players?.full_name ?? 'Jugador').split(' ');
       return {
@@ -163,10 +257,11 @@ export default function SquadDetailScreen() {
         lastName: nameParts.slice(1).join(' ') || '—',
         number: m.jersey_number ?? i + 1,
         overall: m.players?.overall ?? 0,
-        attendance: AttendanceStatus.Maybe,
+        attendance: ATTENDANCE_MAP[attendance[m.player_id] ?? 'invited'],
         isCaptain: m.player_id === team.created_by,
         userId: m.players?.user_id ?? null,
         hasAccount: m.players?.has_account ?? false,
+        photoUrl: m.players?.photo_url ?? null,
         status: (m.status === 'pending' ? 'pending' : 'accepted') as 'pending' | 'accepted',
       };
     }),
@@ -193,10 +288,23 @@ export default function SquadDetailScreen() {
           </View>
           <Text style={styles.headerTitle}>Detalle de equipo</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={styles.headerBtn}>
+              <Ionicons name="share-social-outline" size={18} color={Color.fg3} onPress={handleShareInvite} />
+            </View>
             {isCaptain && (
-              <View style={styles.headerBtn}>
-                <Ionicons name="megaphone-outline" size={18} color={Color.fg3} onPress={() => setAnnounceOpen(true)} />
-              </View>
+              <>
+                <View style={styles.headerBtn}>
+                  <Ionicons name="megaphone-outline" size={18} color={Color.fg3} onPress={() => setAnnounceOpen(true)} />
+                </View>
+                <View style={styles.headerBtn}>
+                  <Ionicons
+                    name="settings-outline"
+                    size={18}
+                    color={Color.fg3}
+                    onPress={() => router.push({ pathname: '/edit-team/[id]', params: { id: team.id } })}
+                  />
+                </View>
+              </>
             )}
             <View style={styles.headerBtn}>
               <Ionicons
@@ -212,8 +320,12 @@ export default function SquadDetailScreen() {
         {/* Hero card */}
         <View style={styles.heroCard}>
           <View style={styles.heroTop}>
-            <View style={[styles.avatarWrapper, { backgroundColor: Color.pitch }]}>
-              <Text style={styles.avatarText}>{team.name.slice(0, 2).toUpperCase()}</Text>
+            <View style={[styles.avatarWrapper, { backgroundColor: Color.pitch, overflow: 'hidden' }]}>
+              {team.logo_url ? (
+                <Image source={{ uri: team.logo_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              ) : (
+                <Text style={styles.avatarText}>{team.name.slice(0, 2).toUpperCase()}</Text>
+              )}
             </View>
             <View style={styles.heroMeta}>
               <Text style={styles.heroYear}>Desde {createdYear}</Text>
@@ -309,7 +421,19 @@ export default function SquadDetailScreen() {
             onRemovePlayer={handleRemovePlayer}
             onCreateMatch={() => router.push({ pathname: '/create-match', params: { squadId: team.id } })}
             onRegisterResult={openResultSheet}
+            currentPlayerId={currentPlayer?.id ?? null}
+            myAttendance={currentPlayer ? attendance[currentPlayer.id] ?? 'invited' : null}
+            hasNextMatch={!!nextMatch}
+            onSetAttendance={handleSetAttendance}
           />
+
+          {!isCaptain && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={styles.leaveBtn} onPress={handleLeaveTeam}>
+                SALIR DEL EQUIPO
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -330,6 +454,17 @@ export default function SquadDetailScreen() {
           awayName={resultMatch.away_team?.name ?? 'Visitante'}
           participants={resultParticipants}
           onSaved={load}
+          reporterPlayerId={currentPlayer?.id ?? null}
+          opponentTeamId={
+            resultMatch.home_team_id === team.id
+              ? resultMatch.away_team?.id ?? null
+              : resultMatch.home_team?.id ?? null
+          }
+          opponentCaptainId={
+            resultMatch.home_team_id === team.id
+              ? resultMatch.away_team?.created_by ?? null
+              : resultMatch.home_team?.created_by ?? null
+          }
         />
       )}
     </View>

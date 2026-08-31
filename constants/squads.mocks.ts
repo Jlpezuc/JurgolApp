@@ -18,6 +18,7 @@ export interface SquadPlayer {
   isCaptain?: boolean;
   userId: string | null;
   hasAccount: boolean;
+  photoUrl?: string | null;
   status: 'pending' | 'accepted';
 }
 

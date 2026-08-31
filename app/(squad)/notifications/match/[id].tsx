@@ -7,10 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Color } from '@/constants/design';
 import { usePlayer } from '@/hooks/usePlayer';
+import { scheduleMatchReminder } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { styles } from '../invitation.styles';
 
-type MatchTeam = { id: string; name: string; elo: number };
+type MatchTeam = { id: string; name: string; elo: number; created_by: string };
 type MatchInfo = {
   id: string;
   date: string;
@@ -18,17 +19,23 @@ type MatchInfo = {
   location: string | null;
   home_team_id: string;
   away_team_id: string | null;
+  score_home: number | null;
+  score_away: number | null;
+  score_reported_by: string | null;
+  score_confirmed: boolean;
   home_team: MatchTeam | null;
   away_team: MatchTeam | null;
 };
 type Challenge = { id: string; status: string; challenger_team: MatchTeam | null };
+
+type NotifType = 'match_created' | 'team_challenge' | 'result_reported';
 
 export default function MatchNotificationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { player } = usePlayer();
 
-  const [type, setType] = useState<'match_created' | 'team_challenge' | null>(null);
+  const [type, setType] = useState<NotifType | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [match, setMatch] = useState<MatchInfo | null>(null);
   const [alreadyIn, setAlreadyIn] = useState(false);
@@ -49,12 +56,12 @@ export default function MatchNotificationScreen() {
       await supabase.from('notifications').update({ is_read: true }).eq('id', id);
     }
 
-    setType(notif.type as 'match_created' | 'team_challenge');
+    setType(notif.type as NotifType);
     setMessage(notif.message);
 
     const { data: matchData } = await supabase
       .from('matches')
-      .select('id, date, modality, location, home_team_id, away_team_id, home_team:teams!matches_home_team_id_fkey(id,name,elo), away_team:teams!matches_away_team_id_fkey(id,name,elo)')
+      .select('id, date, modality, location, home_team_id, away_team_id, score_home, score_away, score_reported_by, score_confirmed, home_team:teams!matches_home_team_id_fkey(id,name,elo,created_by), away_team:teams!matches_away_team_id_fkey(id,name,elo,created_by)')
       .eq('id', notif.match_id)
       .single();
 
@@ -74,7 +81,7 @@ export default function MatchNotificationScreen() {
     if (notif.type === 'team_challenge') {
       const { data: ch } = await supabase
         .from('match_challenges')
-        .select('id, status, challenger_team:teams!match_challenges_challenger_team_id_fkey(id,name,elo)')
+        .select('id, status, challenger_team:teams!match_challenges_challenger_team_id_fkey(id,name,elo,created_by)')
         .eq('match_id', notif.match_id)
         .eq('status', 'pending');
       setChallenges((ch as unknown as Challenge[]) ?? []);
@@ -99,8 +106,52 @@ export default function MatchNotificationScreen() {
       Alert.alert('Error', error.message);
       return;
     }
+    await scheduleMatchReminder(
+      match.id,
+      match.date,
+      '⚽ Tienes partido hoy',
+      `${match.home_team?.name ?? 'Tu equipo'} juega ${match.modality}${match.location ? ` en ${match.location}` : ''}.`
+    );
+
     setAlreadyIn(true);
     Alert.alert('¡Listo!', 'Te uniste al partido.', [{ text: 'OK', onPress: () => router.back() }]);
+  }
+
+  async function handleConfirmResult(accept: boolean) {
+    if (!match) return;
+    setSubmitting(true);
+
+    if (accept) {
+      // Flipping to 'played' with both scores set is what fires apply_match_elo.
+      await supabase
+        .from('matches')
+        .update({ status: 'played', score_confirmed: true })
+        .eq('id', match.id);
+    } else {
+      // Reject: wipe the proposal so the other team can report again.
+      await supabase
+        .from('matches')
+        .update({ score_home: null, score_away: null, score_reported_by: null })
+        .eq('id', match.id);
+    }
+
+    if (match.score_reported_by) {
+      await supabase.from('notifications').insert({
+        recipient_player_id: match.score_reported_by,
+        type: 'result_reported',
+        message: accept
+          ? `Confirmaron el resultado ${match.score_home}-${match.score_away}.`
+          : 'Rechazaron el resultado que cargaste. Vuelve a cargarlo con el marcador correcto.',
+        match_id: match.id,
+      });
+    }
+
+    setSubmitting(false);
+    Alert.alert(
+      accept ? 'Resultado confirmado' : 'Resultado rechazado',
+      accept ? 'El partido quedó oficial y se actualizó el Elo.' : 'Le avisamos al otro equipo.',
+      [{ text: 'OK', onPress: () => router.back() }]
+    );
   }
 
   async function handleChallengeResponse(challenge: Challenge, accept: boolean) {
@@ -108,8 +159,10 @@ export default function MatchNotificationScreen() {
     setSubmitting(true);
 
     if (accept) {
+      const awayTeamId = challenge.challenger_team?.id;
+
       await supabase.from('matches').update({
-        away_team_id: challenge.challenger_team?.id,
+        away_team_id: awayTeamId,
         status: 'scheduled',
         seeking_opponent: false,
       }).eq('id', match.id);
@@ -120,6 +173,29 @@ export default function MatchNotificationScreen() {
         .update({ status: 'rejected' })
         .eq('match_id', match.id)
         .neq('id', challenge.id);
+
+      // Register the away roster too, otherwise only the home team's players get
+      // career stats and `overall` updates when the result is applied.
+      if (awayTeamId) {
+        const { data: awayMembers } = await supabase
+          .from('team_members')
+          .select('player_id')
+          .eq('team_id', awayTeamId)
+          .eq('status', 'accepted');
+
+        if (awayMembers?.length) {
+          await supabase.from('match_players').upsert(
+            awayMembers.map((m) => ({
+              match_id: match.id,
+              player_id: m.player_id,
+              team_side: 'away',
+              status: 'confirmed',
+              source: 'captain',
+            })),
+            { onConflict: 'match_id,player_id' }
+          );
+        }
+      }
     } else {
       await supabase.from('match_challenges').update({ status: 'rejected' }).eq('id', challenge.id);
     }
@@ -175,7 +251,11 @@ export default function MatchNotificationScreen() {
             <Ionicons name="chevron-back" size={20} color={Color.fg2} />
           </Pressable>
           <Text style={styles.headerTitle}>
-            {type === 'match_created' ? 'PARTIDO CREADO' : 'POSTULACIÓN DE RIVAL'}
+            {type === 'match_created'
+              ? 'PARTIDO CREADO'
+              : type === 'result_reported'
+                ? 'RESULTADO'
+                : 'POSTULACIÓN DE RIVAL'}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -232,6 +312,57 @@ export default function MatchNotificationScreen() {
                 )}
               </Pressable>
             </View>
+          )
+        )}
+
+        {type === 'result_reported' && (
+          match.score_confirmed ? (
+            <View style={[styles.resolvedBanner, { backgroundColor: Color.successBg }]}>
+              <Ionicons name="checkmark-circle" size={20} color={Color.success} />
+              <Text style={[styles.resolvedText, { color: Color.success }]}>
+                Resultado confirmado: {match.score_home}–{match.score_away}
+              </Text>
+            </View>
+          ) : match.score_home == null || match.score_away == null ? (
+            <View style={[styles.resolvedBanner, { backgroundColor: Color.field }]}>
+              <Text style={styles.resolvedText}>Ya no hay un resultado pendiente de confirmar.</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>MARCADOR REPORTADO</Text>
+                <View style={styles.teamRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.teamName}>{match.home_team?.name ?? 'Local'}</Text>
+                  </View>
+                  <Text style={styles.teamName}>
+                    {match.score_home} – {match.score_away}
+                  </Text>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={styles.teamName}>{match.away_team?.name ?? 'Visitante'}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.actions}>
+                <Pressable
+                  style={styles.acceptBtn}
+                  disabled={submitting}
+                  onPress={() => handleConfirmResult(true)}
+                >
+                  <Ionicons name="checkmark" size={18} color={Color.pitch} />
+                  <Text style={styles.acceptText}>Confirmar</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.rejectBtn}
+                  disabled={submitting}
+                  onPress={() => handleConfirmResult(false)}
+                >
+                  <Ionicons name="close" size={18} color={Color.danger} />
+                  <Text style={styles.rejectText}>Rechazar</Text>
+                </Pressable>
+              </View>
+            </>
           )
         )}
 

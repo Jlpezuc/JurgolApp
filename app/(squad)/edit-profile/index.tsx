@@ -1,13 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { usePlayer } from '@/hooks/usePlayer';
 import { useSession } from '@/hooks/useSession';
+import { pickSquareImage, uploadImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { styles } from './edit-profile.styles';
+
+function getInitials(name: string) {
+  return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+}
 
 export default function EditProfileScreen() {
   const { player, refresh } = usePlayer();
@@ -16,6 +21,8 @@ export default function EditProfileScreen() {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -24,8 +31,24 @@ export default function EditProfileScreen() {
     setFullName(player.full_name ?? '');
     setUsername(player.username ?? '');
     setPhone(player.phone ?? '');
+    setPhotoUrl(player.photo_url ?? null);
     setLoaded(true);
   }, [player, loaded]);
+
+  async function handlePickPhoto() {
+    if (!player) return;
+    try {
+      const image = await pickSquareImage();
+      if (!image) return;
+      setUploadingPhoto(true);
+      const url = await uploadImage(image, `players/${player.id}`);
+      setPhotoUrl(url);
+    } catch (e) {
+      Alert.alert('Error', e instanceof Error ? e.message : 'No se pudo subir la foto.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function handleSave() {
     if (!player) return;
@@ -67,6 +90,7 @@ export default function EditProfileScreen() {
         full_name: fullName.trim(),
         username: cleanUsername,
         phone: phone.trim() || null,
+        photo_url: photoUrl,
       })
       .eq('id', player.id);
 
@@ -91,6 +115,24 @@ export default function EditProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <TouchableOpacity style={styles.avatarWrap} onPress={handlePickPhoto} disabled={uploadingPhoto}>
+          <View style={styles.avatar}>
+            {uploadingPhoto ? (
+              <ActivityIndicator color="#fff" />
+            ) : photoUrl ? (
+              <Image source={{ uri: photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarInitials}>
+                {fullName ? getInitials(fullName) : '?'}
+              </Text>
+            )}
+            <View style={styles.avatarBadge}>
+              <Ionicons name="camera" size={16} color="#fff" />
+            </View>
+          </View>
+          <Text style={styles.avatarHint}>Toca para cambiar tu foto</Text>
+        </TouchableOpacity>
+
         <View style={styles.section}>
           <Text style={styles.fieldLabel}>Nombre completo</Text>
           <TextInput

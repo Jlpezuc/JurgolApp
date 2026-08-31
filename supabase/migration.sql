@@ -203,3 +203,141 @@ create trigger on_match_played
   before update on public.matches
   for each row
   execute function apply_match_elo();
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Second batch: result confirmation, media, push tokens, team lifecycle
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── Result double-confirmation ───────────────────────────────────────────────
+-- A reported score stays unapplied (match stays 'scheduled') until the opposing
+-- team confirms it. Only then does the match flip to 'played', which is what
+-- fires apply_match_elo. Matches without an away team (loose-player matches)
+-- have nobody to confirm, so they go straight to 'played'.
+alter table public.matches
+  add column if not exists score_reported_by uuid references public.players(id),
+  add column if not exists score_confirmed boolean not null default false;
+
+update public.matches set score_confirmed = true where status = 'played';
+
+-- ── Push notification tokens ─────────────────────────────────────────────────
+-- Expo push token, saved best-effort from the app. Remote push needs a
+-- development build (Expo Go dropped Android remote push in SDK 53); local
+-- match reminders are scheduled on-device and don't use this.
+alter table public.players
+  add column if not exists push_token varchar;
+
+-- ── Notification types for result confirmation + cancellations ──────────────
+alter table public.notifications drop constraint if exists notifications_type_check;
+alter table public.notifications add constraint notifications_type_check
+  check (type::text = any (array[
+    'team_invitation','player_removed','match_created','team_challenge','announcement',
+    'result_reported','match_cancelled'
+  ]::text[]));
+
+-- ── Storage bucket for player photos / team logos ────────────────────────────
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "avatars_public_read" on storage.objects;
+create policy "avatars_public_read" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+drop policy if exists "avatars_authenticated_insert" on storage.objects;
+create policy "avatars_authenticated_insert" on storage.objects
+  for insert to authenticated with check (bucket_id = 'avatars');
+
+drop policy if exists "avatars_authenticated_update" on storage.objects;
+create policy "avatars_authenticated_update" on storage.objects
+  for update to authenticated using (bucket_id = 'avatars');
+
+drop policy if exists "avatars_authenticated_delete" on storage.objects;
+create policy "avatars_authenticated_delete" on storage.objects
+  for delete to authenticated using (bucket_id = 'avatars');
+
+-- ── Team lifecycle RPCs ──────────────────────────────────────────────────────
+-- Deleting a team has to unwind a lot of FKs that don't cascade (matches,
+-- match_players, match_challenges, notifications, elo history). Doing it from the
+-- client would be several round-trips and could half-fail, so it lives in one
+-- SECURITY DEFINER function that only the team's creator can run.
+create or replace function public.delete_team(p_team_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_caller_player_id uuid;
+  v_created_by uuid;
+  v_match_ids uuid[];
+begin
+  select id into v_caller_player_id from players where user_id = auth.uid();
+  if v_caller_player_id is null then
+    raise exception 'No player profile for current user';
+  end if;
+
+  select created_by into v_created_by from teams where id = p_team_id;
+  if v_created_by is null then
+    raise exception 'Team not found';
+  end if;
+  if v_created_by <> v_caller_player_id then
+    raise exception 'Only the team creator can delete the team';
+  end if;
+
+  select array_agg(id) into v_match_ids
+  from matches
+  where home_team_id = p_team_id or away_team_id = p_team_id;
+
+  if v_match_ids is not null then
+    delete from notifications where match_id = any(v_match_ids);
+    delete from team_elo_history where match_id = any(v_match_ids);
+    delete from match_players where match_id = any(v_match_ids);
+    delete from match_challenges where match_id = any(v_match_ids);
+    delete from matches where id = any(v_match_ids);
+  end if;
+
+  delete from match_challenges where challenger_team_id = p_team_id;
+  delete from team_elo_history where team_id = p_team_id;
+  delete from team_messages where team_id = p_team_id;
+  delete from notifications where team_id = p_team_id;
+  delete from notifications
+    where team_member_id in (select id from team_members where team_id = p_team_id);
+  delete from team_members where team_id = p_team_id;
+  delete from teams where id = p_team_id;
+end;
+$$;
+
+-- Leaving a team: a member removes their own row. The creator can't leave
+-- (they'd orphan the team) — they must delete it or stay.
+create or replace function public.leave_team(p_team_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_caller_player_id uuid;
+  v_created_by uuid;
+begin
+  select id into v_caller_player_id from players where user_id = auth.uid();
+  if v_caller_player_id is null then
+    raise exception 'No player profile for current user';
+  end if;
+
+  select created_by into v_created_by from teams where id = p_team_id;
+  if v_created_by = v_caller_player_id then
+    raise exception 'The team creator cannot leave their own team';
+  end if;
+
+  delete from notifications
+    where team_member_id in (
+      select id from team_members
+      where team_id = p_team_id and player_id = v_caller_player_id
+    );
+  delete from team_members
+    where team_id = p_team_id and player_id = v_caller_player_id;
+end;
+$$;
+
+grant execute on function public.delete_team(uuid) to authenticated;
+grant execute on function public.leave_team(uuid) to authenticated;

@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -10,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InvitePlayerModal } from '@/components/squad-details/invite-modal/invite-modal';
 import { Color, Space } from '@/constants/design';
 import { usePlayer } from '@/hooks/usePlayer';
+import { PickedImage, pickSquareImage, uploadImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { styles } from './add-player.styles';
 
@@ -69,7 +69,7 @@ export default function AddPlayerScreen() {
   const [memberCount, setMemberCount] = useState(0);
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [image, setImage] = useState<PickedImage | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -85,13 +85,8 @@ export default function AddPlayerScreen() {
   }, [squadId]);
 
   async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.85,
-    });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    const picked = await pickSquareImage();
+    if (picked) setImage(picked);
   }
 
   async function handleSave() {
@@ -108,6 +103,16 @@ export default function AddPlayerScreen() {
       Alert.alert('Error', error?.message ?? 'No se pudo crear el jugador.');
       setSaving(false);
       return;
+    }
+
+    // Photo is uploaded after the insert so it can be namespaced by the new player id.
+    if (image) {
+      try {
+        const url = await uploadImage(image, `players/${player.id}`);
+        await supabase.from('players').update({ photo_url: url }).eq('id', player.id);
+      } catch {
+        // Non-fatal: the player was created, just without a photo.
+      }
     }
 
     await supabase.from('team_members').insert({
@@ -167,7 +172,7 @@ export default function AddPlayerScreen() {
         <View style={styles.cardSection}>
           <PlayerCard
             name={name}
-            imageUri={imageUri}
+            imageUri={image?.uri ?? null}
             onPressPhoto={pickImage}
           />
           <Text style={styles.cardHint}>Toca la tarjeta para subir la foto</Text>

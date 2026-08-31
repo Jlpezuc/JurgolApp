@@ -62,6 +62,17 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  pickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pickerBtnText: {
+    fontFamily: Font.body.medium,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+    textTransform: 'capitalize',
+  },
   chipsRow: {
     flexDirection: 'row',
     gap: 8,

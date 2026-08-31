@@ -56,8 +56,11 @@ export default function RootLayout() {
   if (!fontsLoaded || loading) return null;
 
   const inAuthGroup = segments[0] === '(auth)';
+  // The password-recovery deep link must render regardless of session state:
+  // the recovery session can land a tick after the route does.
+  const inPasswordRecovery = segments[0] === 'reset-password';
 
-  if (!session && !inAuthGroup) return <Redirect href="/(auth)" />;
+  if (!session && !inAuthGroup && !inPasswordRecovery) return <Redirect href="/(auth)" />;
   if (session && inAuthGroup) return <Redirect href="/(tabs)" />;
 
   return (

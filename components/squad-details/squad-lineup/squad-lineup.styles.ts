@@ -114,6 +114,37 @@ export const styles = StyleSheet.create({
     fontSize: TextSize.xs,
     color: Color.fg3,
   },
+  attendanceDividerLine: {
+    height: 1,
+    backgroundColor: Color.border1,
+    marginTop: Space.s1,
+  },
+  attendancePicker: {
+    flexDirection: 'row',
+    gap: Space.s2,
+  },
+  attendanceOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Space.s2 + 2,
+    borderRadius: Radius.sm,
+    borderWidth: 1.5,
+    borderColor: Color.border2,
+    backgroundColor: Color.chalk,
+  },
+  attendanceOptionText: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.sm,
+    color: Color.fg2,
+  },
+  attendanceOptionTextActive: {
+    color: Color.chalk,
+  },
+  attendanceEmptyHint: {
+    fontFamily: Font.body.regular,
+    fontSize: TextSize.xs,
+    color: Color.fg4,
+  },
 
   // ── Roster section ─────────────────────────────────────────────────────────
   rosterCard: {
@@ -149,6 +180,10 @@ export const styles = StyleSheet.create({
   },
   playerAvatarCaptain: {
     backgroundColor: Color.sun,
+  },
+  playerAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   playerAvatarText: {
     fontFamily: Font.display.black,
@@ -242,6 +277,68 @@ export const styles = StyleSheet.create({
     fontFamily: Font.body.semibold,
     fontSize: TextSize.base,
     color: Color.fg1,
+  },
+
+  // ── Rivals ─────────────────────────────────────────────────────────────────
+  rivalCard: {
+    backgroundColor: Color.chalk,
+    borderRadius: Radius.lg,
+    padding: Space.s4,
+    gap: Space.s3,
+    shadowColor: Color.pitch,
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  rivalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.s3,
+  },
+  rivalBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    backgroundColor: Color.pitch,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rivalBadgeText: {
+    fontFamily: Font.display.black,
+    fontSize: TextSize.sm,
+    color: Color.chalk,
+  },
+  rivalName: {
+    fontFamily: Font.body.semibold,
+    fontSize: TextSize.base,
+    color: Color.fg1,
+  },
+  rivalElo: {
+    fontFamily: Font.mono.medium,
+    fontSize: TextSize.xs,
+    color: Color.fg3,
+  },
+  rivalStats: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: Color.border1,
+    paddingTop: Space.s3,
+  },
+  rivalStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  rivalStatValue: {
+    fontFamily: Font.display.bold,
+    fontSize: TextSize.md,
+  },
+  rivalStatLabel: {
+    fontFamily: Font.mono.medium,
+    fontSize: 10,
+    color: Color.fg4,
+    letterSpacing: 0.8,
   },
 
   // ── Match result button ───────────────────────────────────────────────────

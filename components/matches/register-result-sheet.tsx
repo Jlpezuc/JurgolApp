@@ -15,6 +15,12 @@ type Props = {
   awayName: string;
   participants: Participant[];
   onSaved: () => void;
+  /** Who is reporting — stored so the rival knows who to confirm against. */
+  reporterPlayerId: string | null;
+  /** Rival team, when there is one. Its absence means no confirmation step. */
+  opponentTeamId?: string | null;
+  /** Rival captain, notified to confirm the reported score. */
+  opponentCaptainId?: string | null;
 };
 
 export function RegisterResultSheet({
@@ -25,6 +31,9 @@ export function RegisterResultSheet({
   awayName,
   participants,
   onSaved,
+  reporterPlayerId,
+  opponentTeamId,
+  opponentCaptainId,
 }: Props) {
   const [scoreHome, setScoreHome] = useState('');
   const [scoreAway, setScoreAway] = useState('');
@@ -47,14 +56,22 @@ export function RegisterResultSheet({
       Alert.alert('Falta el marcador', 'Ingresa el resultado de ambos equipos.');
       return;
     }
+    if (!reporterPlayerId) return;
     setSaving(true);
+
+    // With a rival team involved the score is only a *proposal* until they confirm
+    // it — the match stays 'scheduled', so the Elo trigger doesn't fire yet.
+    // Matches without an away team have nobody to confirm, so they close directly.
+    const needsConfirmation = !!opponentTeamId;
 
     const { error } = await supabase
       .from('matches')
       .update({
-        status: 'played',
+        status: needsConfirmation ? 'scheduled' : 'played',
         score_home: parseInt(scoreHome, 10),
         score_away: parseInt(scoreAway, 10),
+        score_reported_by: reporterPlayerId,
+        score_confirmed: !needsConfirmation,
       })
       .eq('id', matchId);
 
@@ -72,9 +89,25 @@ export function RegisterResultSheet({
         .eq('player_id', mvpId);
     }
 
+    if (needsConfirmation && opponentCaptainId) {
+      await supabase.from('notifications').insert({
+        recipient_player_id: opponentCaptainId,
+        type: 'result_reported',
+        message: `Se reportó ${scoreHome}-${scoreAway} en el partido ${homeName} vs ${awayName}. Confirma si es correcto.`,
+        match_id: matchId,
+      });
+    }
+
     setSaving(false);
     onSaved();
     handleClose();
+
+    Alert.alert(
+      needsConfirmation ? 'Resultado enviado' : 'Resultado guardado',
+      needsConfirmation
+        ? 'El rival tiene que confirmarlo para que quede oficial y se actualice el Elo.'
+        : 'El partido quedó registrado.'
+    );
   }
 
   return (

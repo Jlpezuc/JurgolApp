@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { registerForPushNotifications } from '@/lib/notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { styles } from './profile.styles';
 import { Color } from '@/constants/design';
 import { usePlayer } from '@/hooks/usePlayer';
@@ -31,6 +32,12 @@ export default function ProfileScreen() {
   const displayName = player?.full_name ?? '—';
   const initials = player?.full_name ? getInitials(player.full_name) : '?';
 
+  // Best-effort: only succeeds on a development build (Expo Go dropped remote push
+  // on Android in SDK 53). Local match reminders don't depend on this.
+  useEffect(() => {
+    if (player?.id) registerForPushNotifications(player.id);
+  }, [player?.id]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -52,7 +59,11 @@ export default function ProfileScreen() {
 
         <View style={styles.avatarCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarInitials}>{initials}</Text>
+            {player?.photo_url ? (
+              <Image source={{ uri: player.photo_url }} style={styles.avatarImage} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            )}
           </View>
           <Text style={styles.playerName}>{displayName}</Text>
         </View>
@@ -95,6 +106,10 @@ export default function ProfileScreen() {
 
         <TouchableOpacity style={styles.btnSecondary} onPress={() => setQrOpen(true)}>
           <Text style={styles.btnSecondaryText}>Mi código QR</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.btnSecondary} onPress={() => router.push('/account')}>
+          <Text style={styles.btnSecondaryText}>Cuenta y seguridad</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btnLogout} onPress={() => supabase.auth.signOut()}>

@@ -80,4 +80,29 @@ export const styles = StyleSheet.create({
   smallBtnTextDark: {
     color: Color.chalk,
   },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    borderColor: Color.border2,
+    backgroundColor: Color.chalk,
+  },
+  filterChipActive: {
+    backgroundColor: Color.pitch,
+    borderColor: Color.pitch,
+  },
+  filterChipText: {
+    fontFamily: Font.body.medium,
+    fontSize: TextSize.sm,
+    color: Color.fg2,
+  },
+  filterChipTextActive: {
+    color: Color.chalk,
+  },
 });

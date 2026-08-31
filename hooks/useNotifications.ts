@@ -3,7 +3,14 @@ import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { usePlayer } from './usePlayer';
 
-export type NotificationType = 'team_invitation' | 'player_removed' | 'match_created' | 'team_challenge' | 'announcement';
+export type NotificationType =
+  | 'team_invitation'
+  | 'player_removed'
+  | 'match_created'
+  | 'team_challenge'
+  | 'announcement'
+  | 'result_reported'
+  | 'match_cancelled';
 
 export type AppNotification = {
   id: string;

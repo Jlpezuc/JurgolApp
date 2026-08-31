@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   Switch,
   Text,
@@ -16,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { usePlayer } from '@/hooks/usePlayer';
 import { SelectOpponentModal } from '@/components/matches/select-opponent-modal';
+import { scheduleMatchReminder } from '@/lib/notifications';
 import { styles } from './create-match.styles';
 
 const MODALITIES = [
@@ -23,6 +26,21 @@ const MODALITIES = [
   { id: '7v7', label: '7v7' },
   { id: '11v11', label: '11v11' },
 ];
+
+/** Next round hour, used as the default kickoff so the picker never opens in the past. */
+function defaultKickoff() {
+  const d = new Date();
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+  return d;
+}
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString('es', { weekday: 'short', day: '2-digit', month: 'long' });
+}
+
+function formatTime(d: Date) {
+  return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+}
 
 type TeamOption = { id: string; name: string };
 type Member = { player_id: string; full_name: string };
@@ -52,8 +70,8 @@ export default function CreateMatchScreen() {
   const [selectOpponentOpen, setSelectOpponentOpen] = useState(false);
 
   const [modality, setModality] = useState(paramModality ?? '5v5');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [kickoff, setKickoff] = useState<Date>(defaultKickoff);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
   const [location, setLocation] = useState(paramLocation ?? '');
   const [seekingOpponent, setSeekingOpponent] = useState(!!rematchTeamId);
   const [challengeMode, setChallengeMode] = useState<'open' | 'specific'>(rematchTeamId ? 'specific' : 'open');
@@ -113,15 +131,11 @@ export default function CreateMatchScreen() {
       return;
     }
     if (!player?.id) return;
-    if (!date.trim() || !time.trim()) {
-      Alert.alert('Falta la fecha', 'Ingresa fecha (AAAA-MM-DD) y hora (HH:MM).');
+    if (kickoff.getTime() <= Date.now()) {
+      Alert.alert('Fecha inválida', 'El partido tiene que ser a futuro.');
       return;
     }
-    const iso = new Date(`${date.trim()}T${time.trim()}:00`);
-    if (isNaN(iso.getTime())) {
-      Alert.alert('Fecha inválida', 'Revisa el formato: AAAA-MM-DD y HH:MM.');
-      return;
-    }
+    const iso = kickoff;
     if (seekingOpponent && challengeMode === 'specific' && !targetTeam) {
       Alert.alert('Falta el rival', 'Elige a qué equipo quieres retar.');
       return;
@@ -184,7 +198,7 @@ export default function CreateMatchScreen() {
             others.map((m) => ({
               recipient_player_id: m.player_id,
               type: 'match_created',
-              message: `Se creó un partido para el ${date.trim()}. ¡Únete!`,
+              message: `Se creó un partido para el ${formatDate(kickoff)}. ¡Únete!`,
               match_id: match.id,
             }))
           );
@@ -204,13 +218,21 @@ export default function CreateMatchScreen() {
             picked.map((m) => ({
               recipient_player_id: m.player_id,
               type: 'match_created',
-              message: `Fuiste convocado para el partido del ${date.trim()}.`,
+              message: `Fuiste convocado para el partido del ${formatDate(kickoff)}.`,
               match_id: match.id,
             }))
           );
         }
       }
     }
+
+    // The creator is always in the lineup, so remind them locally.
+    await scheduleMatchReminder(
+      match.id,
+      iso.toISOString(),
+      '⚽ Tienes partido hoy',
+      `${modality}${location.trim() ? ` en ${location.trim()}` : ''}.`
+    );
 
     setSaving(false);
     router.back();
@@ -263,19 +285,53 @@ export default function CreateMatchScreen() {
         <View style={styles.section}>
           <Text style={styles.fieldLabel}>Fecha y hora</Text>
           <View style={styles.rowInputs}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="AAAA-MM-DD"
-              value={date}
-              onChangeText={setDate}
-            />
-            <TextInput
-              style={[styles.input, { width: 100 }]}
-              placeholder="HH:MM"
-              value={time}
-              onChangeText={setTime}
-            />
+            <TouchableOpacity
+              style={[styles.input, styles.pickerBtn, { flex: 1 }]}
+              onPress={() => setPickerMode('date')}
+            >
+              <Ionicons name="calendar-outline" size={16} color="#6B7A70" />
+              <Text style={styles.pickerBtnText}>{formatDate(kickoff)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.input, styles.pickerBtn, { width: 120 }]}
+              onPress={() => setPickerMode('time')}
+            >
+              <Ionicons name="time-outline" size={16} color="#6B7A70" />
+              <Text style={styles.pickerBtnText}>{formatTime(kickoff)}</Text>
+            </TouchableOpacity>
           </View>
+
+          {pickerMode && (
+            <DateTimePicker
+              value={kickoff}
+              mode={pickerMode}
+              is24Hour
+              minimumDate={pickerMode === 'date' ? new Date() : undefined}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selected) => {
+                if (Platform.OS !== 'ios') setPickerMode(null);
+                if (event.type === 'dismissed' || !selected) return;
+
+                // The date picker only carries Y/M/D and the time picker only H/M —
+                // merge the changed half into the existing kickoff.
+                setKickoff((prev) => {
+                  const next = new Date(prev);
+                  if (pickerMode === 'date') {
+                    next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+                  } else {
+                    next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+                  }
+                  return next;
+                });
+              }}
+            />
+          )}
+
+          {Platform.OS === 'ios' && pickerMode && (
+            <TouchableOpacity style={styles.chip} onPress={() => setPickerMode(null)}>
+              <Text style={styles.chipText}>Listo</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.section}>

@@ -270,4 +270,17 @@ export const styles = StyleSheet.create({
     color: Color.fg4,
     textTransform: 'uppercase',
   },
+  leaveBtn: {
+    fontFamily: Font.body.bold,
+    fontSize: TextSize.sm,
+    color: '#DC2626',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    paddingVertical: 16,
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    borderRadius: Radius.sm,
+    backgroundColor: Color.chalk,
+    overflow: 'hidden',
+  },
 });

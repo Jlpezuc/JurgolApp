@@ -22,8 +22,10 @@ Perfil del jugador. Vinculado 1:1 con un usuario de Supabase Auth vía `user_id`
 | `phone`       | `varchar`   | Nullable, opcional en signup/edición                          |
 | `birth_date`  | `date`      | Nullable                                                       |
 | `photo_url`   | `varchar`   | Nullable                                                       |
-| `overall`     | `int`       | Rating 0–99 del jugador. Se ajusta automáticamente (K=4) por el trigger `apply_match_elo` tras cada partido jugado en el que estuvo `confirmed`. |
-| `has_account` | `boolean`   | Si tiene cuenta real (`user_id` seteado) vs. fue añadido directo al plantel. |
+| `overall`     | `smallint`  | Default `70`. Rating 0–99 del jugador. Se ajusta automáticamente (K=4) por el trigger `apply_match_elo` tras cada partido jugado en el que estuvo `confirmed`. |
+| `preferred_number` | `smallint` | Nullable, CHECK 1–99. Preexistente; **no se usa** desde la app. |
+| `push_token`  | `varchar`   | Nullable. Token de Expo para push remoto, guardado best-effort desde el perfil. Solo se obtiene en un development build (Expo Go dejó de soportar push remoto en Android desde SDK 53); los recordatorios locales no dependen de él. |
+| `has_account` | `boolean`   | **Columna generada**: `(user_id IS NOT NULL)`. Distingue jugadores con cuenta real de los que un capitán añadió a mano al plantel. |
 | `created_at`  | `timestamp` | `now()`                                                        |
 
 **Flujo:** al hacer signup se crea automáticamente un registro en esta tabla con `user_id` + `full_name` (vía trigger de Auth); la pantalla de signup luego hace `UPDATE` para setear `username`/`phone`.
@@ -73,7 +75,7 @@ Bandeja de notificaciones unificada para todos los tipos de aviso de la app.
 |----------------------|-------------|--------------------------------------------------------------|
 | `id`                 | `uuid` PK   | `gen_random_uuid()`                                          |
 | `recipient_player_id`| `uuid` NOT NULL | FK → `public.players(id)`. A quién le llega.               |
-| `type`                | `varchar`   | **CHECK**: `'team_invitation' \| 'player_removed' \| 'match_created' \| 'team_challenge' \| 'announcement'` (constraint `notifications_type_check`, ampliado respecto al original que solo tenía los primeros dos). |
+| `type`                | `varchar`   | **CHECK**: `'team_invitation' \| 'player_removed' \| 'match_created' \| 'team_challenge' \| 'announcement' \| 'result_reported' \| 'match_cancelled'` (constraint `notifications_type_check`, ampliado en dos tandas respecto al original que solo tenía los primeros dos). |
 | `message`             | `text`      | Nullable — mensaje libre (invitación, aviso de capitán, etc). Si es `null`/vacío la UI genera un texto por defecto según `type`. |
 | `is_read`              | `boolean`   | Default `false`                                              |
 | `team_member_id`       | `uuid`      | Nullable. FK → `public.team_members(id)`. Usado por `team_invitation` — de aquí sale el `status` que determina si la notificación es "pendiente de respuesta". |
@@ -101,6 +103,8 @@ Un partido, organizado por un equipo (`home_team_id`), opcionalmente contra otro
 | `status`            | `varchar`    | `'scheduled' \| 'played' \| 'cancelled'`                        |
 | `score_home`        | `int`        | Nullable hasta que se carga el resultado.                       |
 | `score_away`        | `int`        | Nullable hasta que se carga el resultado.                       |
+| `score_reported_by` | `uuid`       | Nullable. FK → `public.players(id)`. Quién cargó el marcador. |
+| `score_confirmed`   | `boolean`    | Default `false`. Un marcador cargado en un partido con rival es solo una *propuesta*: el partido sigue `scheduled` hasta que el rival lo confirma, momento en que pasa a `played` y recién ahí dispara el Elo. Los partidos sin `away_team_id` no tienen quién confirme y pasan directo a `played`. |
 | `elo_applied`       | `boolean`    | Default `false`. Evita que el trigger `apply_match_elo` aplique el ajuste dos veces. |
 | `created_by`        | `uuid` NOT NULL | FK → `public.players(id)`                                    |
 | `created_at`        | `timestamptz`| `now()`                                                          |
@@ -180,6 +184,11 @@ Ambas son `SECURITY DEFINER`, preexistentes en el proyecto de Supabase (no defin
 - **`invite_player(p_team_id uuid, p_player_id uuid, p_role text, p_message text default null)`** — crea la fila `team_members` (`status = 'pending'`) y la `notifications` de tipo `team_invitation` correspondiente, atómicamente. Llamado desde `components/squad-details/invite-modal/invite-modal.tsx`.
 - **`respond_to_invitation(p_team_member_id uuid, p_accept boolean)`** — actualiza `team_members.status` a `accepted`/`rejected` y marca la notificación asociada como resuelta. Llamado desde `app/(squad)/notifications/[id].tsx`.
 
+Estas dos sí están definidas en `supabase/migration.sql` (segunda tanda) y también son `SECURITY DEFINER`:
+
+- **`delete_team(p_team_id uuid)`** — borra el equipo y todo lo que cuelga de él (partidos, `match_players`, postulaciones, mensajes, notificaciones, historial de Elo, miembros) en una sola transacción. Falla si quien llama no es el `created_by` del equipo. Llamado desde `app/(squad)/edit-team/[id].tsx`.
+- **`leave_team(p_team_id uuid)`** — un miembro borra su propia fila de `team_members`. Falla si quien llama es el creador del equipo (tendría que eliminarlo en vez de salirse). Llamado desde `app/(squad)/squad-details/[id].tsx`.
+
 ## Triggers
 
 Definidos con SQL completo en `supabase/migration.sql` (sección "Adopt the pre-existing backend"):
@@ -189,9 +198,15 @@ Definidos con SQL completo en `supabase/migration.sql` (sección "Adopt the pre-
 
 ---
 
+## Storage
+
+Bucket **`avatars`** (público), usado tanto para fotos de jugador (`players/<id>/<ts>.jpg`) como para logos de equipo (`teams/<id>/<ts>.jpg`). Las URLs públicas resultantes se guardan en `players.photo_url` y `teams.logo_url`. Políticas: lectura pública, e insert/update/delete solo para el rol `authenticated`. La subida se hace desde `lib/storage.ts` (decodifica el base64 del `ImagePicker` a `ArrayBuffer`, porque `fetch(uri).blob()` no es confiable en React Native/Android).
+
+---
+
 ## Notas importantes
 
-- **Auth:** Supabase Auth maneja email/password. Al registrarse, Supabase puede enviar un email de confirmación — si quieres desactivarlo ve a _Auth > Settings > Confirm email_ en el dashboard.
+- **Auth:** Supabase Auth maneja email/password. Al registrarse, Supabase puede enviar un email de confirmación — si quieres desactivarlo ve a _Auth > Settings > Confirm email_ en el dashboard. La app también usa `resetPasswordForEmail` (deep link `jurgolapp://reset-password`) y `updateUser` para cambiar correo/contraseña.
 - **RLS:** `players`, `teams`, `team_members`, `notifications` tienen RLS activo (política `authenticated` / `auth.uid() IS NOT NULL`). `matches`, `match_players`, `match_challenges`, `team_messages`, `team_elo_history` tienen RLS **desactivado**, consistente entre sí.
 - **Gotcha de embeds:** los `select` con relaciones anidadas (ej. `teams!matches_home_team_id_fkey(...)`) solo resuelven correctamente contra una sesión autenticada — con solo la anon key (sin usuario logueado) las relaciones embebidas vuelven `null` por RLS, aunque la consulta no tenga ningún error de sintaxis.
 - **Session persistence:** el cliente usa `AsyncStorage` para persistir la sesión entre reinicios de la app (nativo); en web usa detección por URL.

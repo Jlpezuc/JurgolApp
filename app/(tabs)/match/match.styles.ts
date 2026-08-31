@@ -71,4 +71,11 @@ export const styles = StyleSheet.create({
   smallBtnTextDark: {
     color: Color.chalk,
   },
+  smallBtnDanger: {
+    backgroundColor: Color.chalk,
+    borderColor: '#DC2626',
+  },
+  smallBtnTextDanger: {
+    color: '#DC2626',
+  },
 });
