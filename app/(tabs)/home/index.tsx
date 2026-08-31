@@ -95,7 +95,7 @@ export default function DashboardScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Acciones rápidas</Text>
-          <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/(tabs)/match')}>
+          <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/(tabs)/social')}>
             <Text style={styles.btnPrimaryText}>Buscar partido</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnSecondary} onPress={() => router.push('/(tabs)/squads')}>
